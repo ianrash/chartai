@@ -15,10 +15,10 @@ services:
   # Frontend Vite Service (Static Site)
   - type: web
     name: chartai-frontend
-    env: static
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         sync: false # Set this to your backend service URL
