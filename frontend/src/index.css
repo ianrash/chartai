@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #0d0f14;
+    --surface: #161b27;
+    --surface-2: #1e2535;
+    --accent: #6c63ff;
+    --accent-dim: #4e46e5;
+    --bullish: #22c55e;
+    --bearish: #ef4444;
+    --neutral: #facc15;
+    --muted: #8892a4;
+    --text-main: #e2e8f0;
+    --border: rgba(255, 255, 255, 0.05);
+  }
+
+  .light {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --accent: #6c63ff;
+    --accent-dim: #4e46e5;
+    --bullish: #16a34a;
+    --bearish: #dc2626;
+    --neutral: #ca8a04;
+    --muted: #333333;
+    --text-main: #1a1a1a;
+    --border: rgba(0, 0, 0, 0.1);
+  }
+
+  .text-main {
+    color: var(--text-main);
+  }
+
+  .text-muted {
+    color: var(--muted);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--surface);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 3px;
+    opacity: 0.5;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl p-5 transition-all duration-300;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent hover:bg-accent-dim active:scale-95 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+    background-color: var(--accent);
+  }
+
+  .label {
+    @apply text-xs font-medium text-muted uppercase tracking-widest;
+    color: var(--muted);
+  }
+
+  .value {
+    @apply text-base font-semibold;
+    color: var(--text-main);
+  }
+
+  .animate-slide-left {
+    animation: slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes slideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}

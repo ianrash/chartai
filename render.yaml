@@ -1,0 +1,24 @@
+services:
+  # Backend FastAPI Service
+  - type: web
+    name: chartai-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false # Set this in Render dashboard
+      - key: ALLOWED_ORIGINS
+        value: "*" # Update this with your frontend URL later
+
+  # Frontend Vite Service (Static Site)
+  - type: web
+    name: chartai-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # Set this to your backend service URL
