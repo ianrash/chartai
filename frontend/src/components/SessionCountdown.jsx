@@ -17,57 +17,69 @@ const formatCountdown = (diff) => {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 };
 
+const getSessionState = (session, ugandaHour, now) => {
+  const { start, end } = session;
+  
+  if (ugandaHour >= start && ugandaHour < end) {
+    const endTime = new Date(now);
+    endTime.setUTCHours(end - 3, 0, 0, 0);
+    if (endTime <= now) endTime.setUTCDate(endTime.getUTCDate() + 1);
+    const remaining = Math.max(0, (endTime - now) / 1000);
+    return { state: "ACTIVE", remaining };
+  }
+  
+  if (ugandaHour < start) {
+    const nextTime = new Date(now);
+    nextTime.setUTCHours(start - 3, 0, 0, 0);
+    const remaining = Math.max(0, (nextTime - now) / 1000);
+    return { state: "UPCING", remaining };
+  }
+  
+  const nextTime = new Date(now);
+  nextTime.setUTCHours(start + 21, 0, 0, 0);
+  const remaining = Math.max(0, (nextTime - now) / 1000);
+  return { state: "CLOSED", remaining };
+};
+
 export default function SessionCountdown() {
-  const [now, setNow] = useState(new Date());
-  const [sessions, setSessions] = useState([]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
+  const [now, setNow] = useState(() => new Date());
+  const [sessions, setSessions] = useState(() => {
+    const now = new Date();
     const ugandaTime = new Date(now.getTime() + (3 * 60 * 60 * 1000));
     const ugandaHour = ugandaTime.getUTCHours();
     
-    const sessionData = SESSIONS.map((session) => {
-      let state, nextTrigger, timeRemaining;
-      
-      if (ugandaHour >= session.start && ugandaHour < session.end) {
-        state = "ACTIVE";
-        const endHour = session.end;
-        const nextTime = new Date(now);
-        nextTime.setUTCHours(endHour - 3, 0, 0, 0);
-        if (ugandaHour >= session.start) {
-          nextTime.setUTCDate(nextTime.getUTCDate() + (nextTime <= now ? 1 : 0));
-        }
-        timeRemaining = Math.max(0, (nextTime - now) / 1000);
-      } else if (ugandaHour < session.start) {
-        state = "UPCING";
-        const nextTime = new Date(now);
-        nextTime.setUTCHours(session.start - 3, 0, 0, 0);
-        timeRemaining = Math.max(0, (nextTime - now) / 1000);
-      } else {
-        state = "CLOSED";
-        const nextTime = new Date(now);
-        nextTime.setUTCHours(session.start + 21, 0, 0, 0);
-        timeRemaining = Math.max(0, (nextTime - now) / 1000);
-      }
-
+    return SESSIONS.map(session => {
+      const { state, remaining } = getSessionState(session, ugandaHour, now);
       return {
         name: session.name,
         fullName: session.fullName,
         state,
-        timeRemaining,
-        formatted: formatCountdown(timeRemaining),
+        formatted: formatCountdown(remaining),
       };
     });
+  });
 
-    setSessions(sessionData);
-  }, [now]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const ugandaTime = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+      const ugandaHour = ugandaTime.getUTCHours();
+      
+      const updated = SESSIONS.map(session => {
+        const { state, remaining } = getSessionState(session, ugandaHour, now);
+        return {
+          name: session.name,
+          fullName: session.fullName,
+          state,
+          formatted: formatCountdown(remaining),
+        };
+      });
+      
+      setSessions(updated);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const getDisplayText = (session) => {
     switch (session.state) {
