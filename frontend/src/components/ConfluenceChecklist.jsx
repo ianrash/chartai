@@ -7,13 +7,11 @@ const CHECKLIST_ITEMS = [
   { key: "order_block_present", label: "Order Block Present" },
   { key: "session_favorable", label: "Session Favorable" },
   { key: "pattern_confirmed", label: "Pattern Confirmed" },
+  { key: "inducement_swept", label: "Inducement Swept" },
 ];
 
 export default function ConfluenceChecklist({ data }) {
   if (!data) return null;
-
-  const tickedCount = Object.values(data).filter(Boolean).length;
-  const confidence = Math.round((tickedCount / CHECKLIST_ITEMS.length) * 100);
 
   return (
     <div className="card h-full flex flex-col gap-4">
@@ -22,9 +20,6 @@ export default function ConfluenceChecklist({ data }) {
           <Check size={16} className="text-accent" />
           Confluence Checklist
         </h3>
-        <span className={`text-xs font-bold px-2 py-1 rounded-md ${confidence > 60 ? 'bg-bullish/10 text-bullish' : 'bg-neutral/10 text-neutral'}`}>
-          {confidence}% Confidence
-        </span>
       </div>
 
       <div className="grid grid-cols-1 gap-2.5">

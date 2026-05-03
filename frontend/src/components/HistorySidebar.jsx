@@ -1,6 +1,55 @@
-import { X, Trash2, ExternalLink, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { X, Trash2, ExternalLink, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp, Activity, Layers, BarChart2, Zap } from "lucide-react";
+import { useState } from "react";
 
 export default function HistorySidebar({ history, onClose, onUpdateStatus, onDelete }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const renderAnalysis = (item) => {
+    if (!item.analysis) return null;
+    const a = item.analysis;
+    return (
+      <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
+        {a.htf_analysis && (
+          <div className="bg-black/20 rounded-lg p-2">
+            <p className="text-[10px] label uppercase mb-1">HTF Analysis</p>
+            <p className="text-xs text-main">{a.htf_analysis.trend?.direction} • {a.htf_analysis.structure?.overall || "—"}</p>
+          </div>
+        )}
+        {a.ltf_analysis && (
+          <div className="bg-black/20 rounded-lg p-2">
+            <p className="text-[10px] label uppercase mb-1">LTF Analysis</p>
+            <p className="text-xs text-main">{a.ltf_analysis.trend?.direction} • {a.ltf_analysis.structure?.overall || "—"}</p>
+          </div>
+        )}
+        {a.key_levels && (
+          <div className="bg-black/20 rounded-lg p-2">
+            <p className="text-[10px] label uppercase mb-1">Key Levels</p>
+            <p className="text-xs text-main">
+              Demand: {a.key_levels.demand_zones?.[0]?.range || "—"} | Supply: {a.key_levels.supply_zones?.[0]?.range || "—"}
+            </p>
+          </div>
+        )}
+        {a.executive_summary && (
+          <div className="bg-black/20 rounded-lg p-2">
+            <p className="text-[10px] label uppercase mb-1">Summary</p>
+            <p className="text-xs text-main italic">"{a.executive_summary}"</p>
+          </div>
+        )}
+        {a.trade_setup && (
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-2">
+            <p className="text-[10px] label uppercase mb-1">Trade Setup</p>
+            <p className="text-xs text-main">
+              Bias: {a.trade_setup.bias} | Entry: {a.trade_setup.execution?.entry || "Market"} | R:R: {a.trade_setup.execution?.risk_reward || "—"}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <div className="fixed inset-0 z-[60] flex justify-end animate-fade-in">
       {/* Backdrop */}
@@ -42,7 +91,7 @@ export default function HistorySidebar({ history, onClose, onUpdateStatus, onDel
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="text-center bg-black/20 rounded-lg py-1.5">
                     <p className="text-[10px] label">Entry</p>
                     <p className="text-xs font-bold text-main">{item.entry}</p>
@@ -52,8 +101,8 @@ export default function HistorySidebar({ history, onClose, onUpdateStatus, onDel
                     <p className="text-xs font-bold text-accent">{item.rr}</p>
                   </div>
                   <div className="text-center bg-black/20 rounded-lg py-1.5">
-                    <p className="text-[10px] label">Conf.</p>
-                    <p className="text-xs font-bold text-main">{item.confidence}%</p>
+                    <p className="text-[10px] label">Rating</p>
+                    <p className="text-xs font-bold text-main">{item.rating || "—"}</p>
                   </div>
                 </div>
 
@@ -73,10 +122,18 @@ export default function HistorySidebar({ history, onClose, onUpdateStatus, onDel
                       </button>
                     ))}
                   </div>
-                  <button className="p-1.5 text-accent hover:bg-accent/10 rounded-lg transition-all" title="View Analysis">
-                    <ExternalLink size={14} />
-                  </button>
+                  {item.analysis && (
+                    <button 
+                      onClick={() => toggleExpand(item.id)} 
+                      className="p-1.5 text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-1"
+                      title="View Analysis"
+                    >
+                      {expandedId === item.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  )}
                 </div>
+
+                {expandedId === item.id && renderAnalysis(item)}
               </div>
             ))
           )}

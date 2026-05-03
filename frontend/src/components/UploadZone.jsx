@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Upload, X, ChevronDown } from "lucide-react";
 
-const TIMEFRAMES = ["M5", "M15", "M30", "H1", "H4", "D1", "W1"];
+const TIMEFRAMES = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"];
 
 export default function UploadZone({ charts, onChartsChange }) {
   const [isDragging, setIsDragging] = useState(false);

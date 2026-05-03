@@ -1,10 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import UploadZone from "./components/UploadZone";
 import AnalysisCard from "./components/AnalysisCard";
+import HTFCard from "./components/HTFCard";
+import LTFCard from "./components/LTFCard";
 import TradeSetup from "./components/TradeSetup";
-import ConfidenceBar from "./components/ConfidenceBar";
 import ConfluenceChecklist from "./components/ConfluenceChecklist";
 import HistorySidebar from "./components/HistorySidebar";
+import SessionCountdown from "./components/SessionCountdown";
+
+
 import { analyzeChart } from "./api/analyzeChart";
 import html2pdf from "html2pdf.js";
 import {
@@ -24,9 +28,44 @@ import {
   History,
   Download,
   Calendar,
-  Type
+  Type,
+  AlertTriangle
 } from "lucide-react";
 import "./index.css";
+
+const calculateConfluenceScore = (checklist) => {
+  if (!checklist) return 0;
+  const values = Object.values(checklist);
+  return Math.round((values.filter(Boolean).length / values.length) * 100);
+};
+
+const getProbabilityRating = (confluencePercent) => {
+  if (confluencePercent >= 90) return "A+";
+  if (confluencePercent >= 75) return "A";
+  if (confluencePercent >= 60) return "B";
+  if (confluencePercent >= 40) return "C";
+  return "F";
+};
+
+const calculateCorrectTrend = (analysis) => {
+  if (!analysis) return { overall: "Neutral", htf: "Neutral", ltf: "Neutral" };
+  
+  const htfDir = analysis.htf_analysis?.trend?.direction || "Neutral";
+  const ltfConf = analysis.ltf_analysis?.trend?.confirmation;
+  
+  let htf = htfDir;
+  if (!["Bullish", "Bearish", "Neutral"].includes(htf)) htf = "Neutral";
+  
+  let ltf = "Neutral";
+  if (ltfConf === "Confirms HTF" && htf === "Bullish") ltf = "Bullish";
+  else if (ltfConf === "Confirms HTF" && htf === "Bearish") ltf = "Bearish";
+  else if (ltfConf === "Contradicts HTF") ltf = "Neutral";
+  
+  let overall = htf;
+  if (ltfConf === "Contradicts HTF") overall = "Neutral";
+  
+  return { overall, htf, ltf };
+};
 
 const TREND_CONFIG = {
   Bullish: { color: "var(--bullish)", Icon: TrendingUp },
@@ -74,7 +113,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await analyzeChart(charts, symbol, sessionDate);
+      const data = await analyzeChart(charts, "Auto", "Auto");
       setAnalysis(data);
     } catch (err) {
       setError(err.message || "Analysis failed. Is the backend running?");
@@ -91,8 +130,9 @@ export default function App() {
   };
 
   const handleSaveSetup = (trade) => {
-    const tickedCount = analysis?.confluence_checklist ? Object.values(analysis.confluence_checklist).filter(Boolean).length : 0;
-    const confidence = Math.round((tickedCount / 6) * 100);
+    const checklist = analysis?.confluence_checklist || {};
+    const score = calculateConfluenceScore(checklist);
+    const rating = getProbabilityRating(score);
 
     const newEntry = {
       id: Date.now(),
@@ -101,8 +141,10 @@ export default function App() {
       bias: trade.bias,
       entry: trade.execution?.entry_zone || trade.execution?.entry || "Market",
       rr: trade.execution?.risk_reward || "—",
-      confidence: confidence,
+      rating: rating,
+      score: score,
       status: "Pending",
+      analysis: analysis,
     };
     setHistory(prev => [newEntry, ...prev].slice(0, 10));
     setShowHistory(true);
@@ -130,8 +172,9 @@ export default function App() {
     html2pdf().set(opt).from(element).save();
   };
 
+  const trendInfo = calculateCorrectTrend(analysis);
   const trendCfg = analysis
-    ? TREND_CONFIG[analysis.overall_trend] ?? TREND_CONFIG.Neutral
+    ? TREND_CONFIG[trendInfo.overall] ?? TREND_CONFIG.Neutral
     : null;
 
   return (
@@ -169,32 +212,23 @@ export default function App() {
         </div>
       </header>
 
+      {/* Session Countdown Timer */}
+      <SessionCountdown />
+
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           
           {/* Left Panel: Inputs & Upload */}
           <div className="flex flex-col gap-6">
-            <div className="card space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="label flex items-center gap-2"><Type size={12} /> Instrument / Pair</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. XAUUSD"
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-2 text-sm text-main focus:outline-none focus:border-accent transition-colors"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="label flex items-center gap-2"><Calendar size={12} /> Session Time</label>
-                  <input 
-                    type="datetime-local" 
-                    value={sessionDate}
-                    onChange={(e) => setSessionDate(e.target.value)}
-                    className="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-2 text-sm text-main focus:outline-none focus:border-accent transition-colors"
-                  />
+            <div className="card bg-gradient-to-br from-accent/10 via-surface-2 to-accent/5 border-accent/30">
+              <div className="text-center py-6">
+                <p className="text-xl md:text-2xl font-bold text-accent tracking-widest uppercase">Your Chart, Your Edge</p>
+                <p className="text-lg font-semibold text-main mt-2">Let's Build The Plan</p>
+                <div className="flex justify-center gap-2 mt-4">
+                  <div className="w-12 h-0.5 bg-accent/50 rounded"></div>
+                  <div className="w-2 h-0.5 bg-accent rounded-full animate-pulse"></div>
+                  <div className="w-12 h-0.5 bg-accent/50 rounded"></div>
                 </div>
               </div>
             </div>
@@ -258,8 +292,27 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div>
-                      <h2 className="text-xl font-bold text-main">{symbol || "Trade Analysis"}</h2>
-                      <p className="text-xs text-muted">{new Date(sessionDate).toLocaleString()} • {analysis.session_context} Session</p>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-bold text-main">{symbol || "Trade Analysis"}</h2>
+                        {(() => {
+                          const score = calculateConfluenceScore(analysis.confluence_checklist);
+                          const rating = getProbabilityRating(score);
+                          const colors = {
+                            "A+": { bg: "bg-green-500/20", border: "border-green-500/40", text: "text-green-400" },
+                            "A": { bg: "bg-blue-500/20", border: "border-blue-500/40", text: "text-blue-400" },
+                            "B": { bg: "bg-yellow-500/20", border: "border-yellow-500/40", text: "text-yellow-400" },
+                            "C": { bg: "bg-orange-500/20", border: "border-orange-500/40", text: "text-orange-400" },
+                            "F": { bg: "bg-red-500/20", border: "border-red-500/40", text: "text-red-400" },
+                          };
+                          const c = colors[rating] || colors.F;
+                          return (
+                            <span className={`px-2.5 py-1 rounded-lg text-sm font-bold border ${c.bg} ${c.border} ${c.text}`}>
+                              {rating}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <p className="text-xs text-muted">{analysis.session_context} Session • {analysis.instrument_detected || "Unknown"}</p>
                     </div>
                     {trendCfg && (
                       <div 
@@ -267,7 +320,7 @@ export default function App() {
                         style={{ color: trendCfg.color, backgroundColor: `${trendCfg.color}15`, border: `1px solid ${trendCfg.color}33` }}
                       >
                         <trendCfg.Icon size={12} />
-                        {analysis.overall_trend} Trend
+                        {trendInfo.overall} Trend
                       </div>
                     )}
                   </div>
@@ -276,21 +329,33 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Contradiction Warning */}
+                {analysis.ltf_analysis?.trend?.confirmation === "Contradicts HTF" && (
+                  <div className="p-3 rounded-lg bg-bearish/15 border border-bearish/40">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-bearish" />
+                      <span className="text-xs font-bold text-bearish uppercase">WARNING: HTF and LTF are contradicting each other</span>
+                    </div>
+                    <p className="text-sm text-main mt-1">This is a lower probability setup. Reduce position size or wait for LTF to align with HTF before entering.</p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <AnalysisCard
-                    icon={Layers}
-                    label="HTF Bias"
-                    value={analysis.market_structure?.htf_summary}
-                    bias={analysis.market_structure?.htf_bias}
-                    accent="#6c63ff"
-                  />
-                  <AnalysisCard
-                    icon={ShieldAlert}
-                    label="LTF Confirmation"
-                    value={analysis.market_structure?.ltf_summary}
-                    bias={analysis.market_structure?.ltf_bias}
-                    accent="#a855f7"
-                  />
+                  <HTFCard data={analysis.htf_analysis} />
+                  <LTFCard data={analysis.ltf_analysis} />
+                  
+                  {analysis.convergence?.present && (
+                    <div className="md:col-span-2 p-3 rounded-lg bg-accent/10 border border-accent/40">
+                      <div className="flex items-center gap-2">
+                        <Zap size={14} className="text-accent" />
+                        <span className="text-xs font-bold text-accent uppercase">CONVERGENCE DETECTED</span>
+                      </div>
+                      <p className="text-sm text-main mt-1">{analysis.convergence.note}</p>
+                      {analysis.convergence.actionable_warning && (
+                        <p className="text-xs text-bearish mt-2 font-semibold">{analysis.convergence.actionable_warning}</p>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="md:col-span-2">
                     <ConfluenceChecklist data={analysis.confluence_checklist} />
@@ -299,23 +364,61 @@ export default function App() {
                   <AnalysisCard
                     icon={Activity}
                     label="Active Patterns"
-                    value={analysis.patterns?.map(p => p.name).join(", ") || "No patterns detected"}
                     accent="#f97316"
+                    sections={[
+                      {
+                        title: "DETECTED PATTERNS",
+                        content: analysis.patterns?.map(p => `${p.name} (${p.timeframe || '4H'})`).join(", ") || "No patterns detected",
+                      },
+                      ...(analysis.patterns?.length > 0 ? analysis.patterns.map(p => ({
+                        title: p.name.toUpperCase(),
+                        content: p.implication || "",
+                        sub: `TF: ${p.timeframe || '4H'} • Confidence: ${p.confidence}%`
+                      })) : [])
+                    ]}
                   />
                   
                   <AnalysisCard
                     icon={BarChart2}
                     label="Key Price Zones"
-                    value={`Demand: ${analysis.key_levels?.demand_zones?.[0]?.range || '—'}\nSupply: ${analysis.key_levels?.supply_zones?.[0]?.range || '—'}`}
                     accent="#facc15"
+                    sections={[
+                      {
+                        title: "DEMAND ZONES",
+                        content: analysis.key_levels?.demand_zones?.[0]?.range || "—",
+                        sub: `Status: ${analysis.key_levels?.demand_zones?.[0]?.status || "—"}`
+                      },
+                      {
+                        title: "SUPPLY ZONES",
+                        content: analysis.key_levels?.supply_zones?.[0]?.range || "—",
+                        sub: `Status: ${analysis.key_levels?.supply_zones?.[0]?.status || "—"}`
+                      },
+                      {
+                        title: "OPEN FVG",
+                        content: analysis.key_levels?.open_fvg?.[0]?.range || "None",
+                        sub: `Direction: ${analysis.key_levels?.open_fvg?.[0]?.direction || "—"} | Status: ${analysis.key_levels?.open_fvg?.[0]?.status || "—"}`
+                      },
+                      {
+                        title: "LIQUIDITY SWEEPS",
+                        content: `BSL: ${analysis.key_levels?.bsl_swept ? "Swept" : "Not swept"} | SSL: ${analysis.key_levels?.ssl_swept ? "Swept" : "Not swept"}`
+                      }
+                    ]}
                   />
 
                   <AnalysisCard
                     icon={Zap}
                     label="Indicators"
-                    value={analysis.indicators?.summary || "No specific indicators detected"}
-                    sub={analysis.indicators?.detected?.join(", ")}
                     accent="#10b981"
+                    sections={[
+                      {
+                        title: "SUMMARY",
+                        content: analysis.indicators?.summary || "No specific indicators detected"
+                      },
+                      {
+                        title: "DETECTED",
+                        content: analysis.indicators?.detected?.join(", ") || "None"
+                      }
+                    ]}
                   />
                 </div>
 
@@ -324,13 +427,18 @@ export default function App() {
                     <div className="flex items-center gap-2 mb-2">
                       <Zap size={16} className="text-accent" />
                       <h3 className="text-sm font-bold text-main">Executive Summary</h3>
-                      <span className="ml-auto badge bg-accent/20 text-accent">Rating: {analysis.probability_rating || 'N/A'}</span>
+                      {(() => {
+                        const score = calculateConfluenceScore(analysis.confluence_checklist);
+                        const rating = getProbabilityRating(score);
+                        return <span className="ml-auto badge bg-accent/20 text-accent">Rating: {rating}</span>;
+                      })()}
                     </div>
                     <p className="text-sm text-main leading-relaxed italic">"{analysis.executive_summary}"</p>
                   </div>
                 )}
 
-                <TradeSetup trade={analysis.trade_setup} alternative={analysis.alternative_scenario} onSave={handleSaveSetup} />
+                <TradeSetup trade={analysis.trade_setup} alternative={analysis.alternative_scenario} onSave={handleSaveSetup} confluenceChecklist={analysis.confluence_checklist} />
+
               </div>
             )}
           </div>
@@ -349,7 +457,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-white/5 mt-16 py-8 text-center">
-        <p className="text-muted text-xs">ChartAI v2.0 • Pro Trading Intelligence • Not Financial Advice</p>
+        <p className="text-muted text-xs">ChartAI v2.0 • Pro Trading Intelligence • Not Financial Advice • Created by IANRASH</p>
       </footer>
     </div>
   );

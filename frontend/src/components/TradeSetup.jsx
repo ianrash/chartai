@@ -1,18 +1,42 @@
 import { Save, AlertTriangle, Target, Zap, TrendingUp, TrendingDown, Clock, ShieldAlert } from "lucide-react";
 
-export default function TradeSetup({ trade, onSave }) {
+const getProbabilityRating = (checklist) => {
+  if (!checklist) return "F";
+  const values = Object.values(checklist);
+  const score = Math.round((values.filter(Boolean).length / values.length) * 100);
+  if (score >= 90) return "A+";
+  if (score >= 75) return "A";
+  if (score >= 60) return "B";
+  if (score >= 40) return "C";
+  return "F";
+};
+
+export default function TradeSetup({ trade, onSave, confluenceChecklist }) {
   if (!trade) return null;
 
   const isWait = trade.bias?.toUpperCase() === "WAIT";
   const isBuy = trade.bias?.toUpperCase() === "BUY";
   const { execution } = trade;
+  const rating = getProbabilityRating(confluenceChecklist);
+  
+  const ratingColors = {
+    "A+": { bg: "bg-green-500/20", border: "border-green-500/40", text: "text-green-400" },
+    "A": { bg: "bg-blue-500/20", border: "border-blue-500/40", text: "text-blue-400" },
+    "B": { bg: "bg-yellow-500/20", border: "border-yellow-500/40", text: "text-yellow-400" },
+    "C": { bg: "bg-orange-500/20", border: "border-orange-500/40", text: "text-orange-400" },
+    "F": { bg: "bg-red-500/20", border: "border-red-500/40", text: "text-red-400" },
+  };
+  const r = ratingColors[rating] || ratingColors.F;
 
   return (
     <div className={`card overflow-hidden border-2 animate-fade-in ${isWait ? 'border-neutral/30' : isBuy ? 'border-bullish/30' : 'border-bearish/30'}`}>
       <div className={`px-5 py-3 flex items-center justify-between ${isWait ? 'bg-neutral/10' : isBuy ? 'bg-bullish/10' : 'bg-bearish/10'}`}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {isBuy ? <TrendingUp size={18} className="text-bullish" /> : isWait ? <Clock size={18} className="text-neutral" /> : <TrendingDown size={18} className="text-bearish" />}
           <h3 className="font-bold text-main">{trade.label || 'Trade Setup'}</h3>
+          <span className={`px-2 py-0.5 rounded text-xs font-bold border ${r.bg} ${r.border} ${r.text}`}>
+            {rating}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <span className={`badge ${isWait ? 'bg-neutral/20 text-neutral' : isBuy ? 'bg-bullish/20 text-bullish' : 'bg-bearish/20 text-bearish'}`}>
