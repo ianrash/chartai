@@ -13,12 +13,12 @@ services:
         value: "*"
 
   # Frontend Vite Static Site
-  - type: static
+  - type: web
     name: chartai-frontend
+    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishPath: dist
     envVars:
       - key: VITE_API_URL
-        # Replace YOUR_RENDER_BACKEND_URL with your actual backend URL after deploying
         value: "https://chartai-backend.onrender.com"
