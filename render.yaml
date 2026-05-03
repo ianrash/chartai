@@ -1,5 +1,4 @@
 services:
-  # Backend FastAPI Service
   - type: web
     name: chartai-backend
     env: python
@@ -12,13 +11,12 @@ services:
       - key: ALLOWED_ORIGINS
         value: "*"
 
-  # Frontend Vite Static Site
   - type: web
     name: chartai-frontend
     env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishPath: dist
+    startCommand: npm run preview -- --port $PORT --host 0.0.0.0
     envVars:
       - key: VITE_API_URL
         value: "https://chartai-backend.onrender.com"
