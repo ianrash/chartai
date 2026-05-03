@@ -7,17 +7,18 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: GOOGLE_API_KEY
-        sync: false
+      - key: GEMINI_API_KEY
+        value: "AIzaSyBj6VlHmbjUMvlqnJlLC3DaHDpfUK4-WJg"
       - key: ALLOWED_ORIGINS
         value: "*"
 
-  # Frontend Vite Service (Static Site)
- - type: static
+  # Frontend Vite Static Site
+  - type: static
     name: chartai-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishPath: dist
     envVars:
       - key: VITE_API_URL
-        sync: false
+        # Replace YOUR_RENDER_BACKEND_URL with your actual backend URL after deploying
+        value: "https://chartai-backend.onrender.com"
