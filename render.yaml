@@ -7,7 +7,7 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GEMINI_API_KEY
-        value: "AIzaSyBj6VlHmbjUMvlqnJlLC3DaHDpfUK4-WJg"
+        value: "AIzaSyC8wo_Zk-5ALR3nm-Dk8-n0t2SPTEtblzw"
       - key: ALLOWED_ORIGINS
         value: "*"
 
