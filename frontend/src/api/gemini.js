@@ -55,18 +55,18 @@ function extractJson(text) {
 }
 
 function getApiKey() {
-  return "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";
+  return import.meta.env.VITE_OPENROUTER_API_KEY || "";
 }
 
 async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unknown", retries = 3) {
   const apiKey = getApiKey();
   console.log("Using API Key:", apiKey.substring(0, 10) + "...");
-  console.log("API Base:", "https://integrate.api.nvidia.com/v1");
+  console.log("API Base:", "https://openrouter.ai/api/v1");
   
   if (!apiKey) {
     return {
       error: "missing_api_key",
-      message: "OpenRouter API key not configured. Please set VITE_OPENROUTER_API_KEY in Netlify environment variables."
+      message: "OpenRouter API key not configured. Please set VITE_OPENROUTER_API_KEY in environment variables."
     };
   }
 
@@ -99,8 +99,8 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      console.log("Calling NVIDIA API...");
-      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      console.log("Calling OpenRouter API...");
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
