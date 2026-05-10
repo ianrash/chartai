@@ -89,7 +89,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       }
 
       const requestBody = {
-        model: "meta/llama-3.1-70b-instruct",
+        model: "meta/llama-3.2-90b-vision-instruct",
         messages: [{ role: "user", content }],
         temperature: 0.0,
         max_tokens: 2000,
