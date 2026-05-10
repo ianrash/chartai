@@ -55,7 +55,7 @@ function extractJson(text) {
 }
 
 function getApiKey() {
-  return "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";
+  return "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";
 }
 
 async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unknown", retries = 3) {
@@ -87,7 +87,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       }
 
       const requestBody = {
-        model: "google/gemini-flash-latest",
+        model: "meta/llama-3.1-70b-instruct",
         messages: [{ role: "user", content }],
         temperature: 0.0,
         max_tokens: 2000,
@@ -97,13 +97,11 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://vercel.app",
-          "X-Title": "ChartAI"
+          "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal
