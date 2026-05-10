@@ -55,7 +55,7 @@ function extractJson(text) {
 }
 
 function getApiKey() {
-  return import.meta.env.VITE_OPENROUTER_API_KEY || "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";
+  return "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";
 }
 
 async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unknown", retries = 3) {
