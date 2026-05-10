@@ -60,6 +60,8 @@ function getApiKey() {
 
 async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unknown", retries = 3) {
   const apiKey = getApiKey();
+  console.log("Using API Key:", apiKey.substring(0, 10) + "...");
+  console.log("API Base:", "https://integrate.api.nvidia.com/v1");
   
   if (!apiKey) {
     return {
@@ -97,6 +99,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
+      console.log("Calling NVIDIA API...");
       const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
