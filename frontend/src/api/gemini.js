@@ -102,7 +102,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://netlify.app",
+          "HTTP-Referer": "https://vercel.app",
           "X-Title": "ChartAI"
         },
         body: JSON.stringify(requestBody),
