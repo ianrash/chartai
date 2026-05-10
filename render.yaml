@@ -6,10 +6,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: GEMINI_API_KEY
-        value: "AIzaSyC8wo_Zk-5ALR3nm-Dk8-n0t2SPTEtblzw"
+      - key: OPENROUTER_API_KEY
+        value: ""  # Set in Render dashboard environment variables
       - key: ALLOWED_ORIGINS
-        value: "*"
+        value: "https://chartai-frontend.onrender.com"
 
   - type: web
     name: chartai-frontend

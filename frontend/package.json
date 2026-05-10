@@ -1,7 +1,7 @@
 {
-  "name": "frontend",
+  "name": "chartai",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.51.0",
+    "@supabase/supabase-js": "^2.105.3",
+    "dompurify": "^3.4.2",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
     "jspdf": "^4.2.1",

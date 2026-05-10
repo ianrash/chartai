@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import DOMPurify from "dompurify";
 
 const BIAS_CONFIG = {
   Bullish: { color: "var(--bullish)", Icon: TrendingUp, bg: "rgba(34, 197, 94, 0.1)" },
@@ -39,13 +40,13 @@ export default function AnalysisCard({ icon: Icon, label, value, sub, accent, bi
         </div>
 
         {sections.map((section, idx) => (
-          <div key={idx} className="space-y-1">
+          <div key={section.title || `section-${idx}`} className="space-y-1">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted uppercase tracking-wider">
               {section.icon && <section.icon size={10} />}
               {section.title}
             </div>
-            <p className="text-xs text-main">{section.content}</p>
-            {section.sub && <p className="text-[10px] text-muted">{section.sub}</p>}
+            <p className="text-xs text-main">{DOMPurify.sanitize(section.content)}</p>
+            {section.sub && <p className="text-[10px] text-muted">{DOMPurify.sanitize(section.sub)}</p>}
           </div>
         ))}
       </div>

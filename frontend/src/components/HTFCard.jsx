@@ -1,4 +1,5 @@
 import { Layers, TrendingUp, TrendingDown, Minus, Target, Zap, Activity, AlertTriangle } from "lucide-react";
+import DOMPurify from "dompurify";
 
 const BIAS_CONFIG = {
   Bullish: { color: "var(--bullish)", Icon: TrendingUp, bg: "rgba(34, 197, 94, 0.1)" },
@@ -12,15 +13,18 @@ export default function HTFCard({ data }) {
       <div className="card border-l-4 border-[#6c63ff]">
         <div className="flex items-center gap-2 mb-2">
           <Layers size={14} className="text-[#6c63ff]" />
-          <span className="label">HTF Bias</span>
+          <span className="label text-[10px] sm:text-xs">HTF Bias</span>
         </div>
-        <p className="text-muted text-sm">No HTF data available</p>
+        <p className="text-muted text-xs sm:text-sm">No HTF data available</p>
       </div>
     );
   }
 
   const biasCfg = BIAS_CONFIG[data.trend?.direction] || BIAS_CONFIG.Neutral;
   const inducement = data.inducement;
+
+  const sweptPools = Array.isArray(data.liquidity?.swept_pools) ? data.liquidity.swept_pools.join(", ") : "None";
+  const untouchedTargets = Array.isArray(data.liquidity?.untouched_targets) ? data.liquidity.untouched_targets.join(", ") : "None";
 
   return (
     <div className="card border-l-4 border-[#6c63ff] flex flex-col gap-3">
@@ -46,10 +50,10 @@ export default function HTFCard({ data }) {
           <TrendingUp size={10} /> HTF TREND DIRECTION
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#6c63ff] font-semibold">Trend:</span> {data.trend?.direction || "—"} • 
-          <span className="text-[#6c63ff] font-semibold"> Valuation:</span> {data.trend?.valuation || "—"}
+          <span className="text-[#6c63ff] font-semibold">Trend:</span> {DOMPurify.sanitize(data.trend?.direction || "—")} • 
+          <span className="text-[#6c63ff] font-semibold"> Valuation:</span> {DOMPurify.sanitize(data.trend?.valuation || "—")}
         </p>
-        <p className="text-xs text-muted">BOS/CHoCH: {data.trend?.structure_details || "—"}</p>
+        <p className="text-xs text-muted">BOS/CHoCH: {DOMPurify.sanitize(data.trend?.structure_details || "—")}</p>
       </div>
 
       {/* HTF ORDER BLOCK */}
@@ -58,11 +62,11 @@ export default function HTFCard({ data }) {
           <Target size={10} /> HTF ORDER BLOCK
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#6c63ff] font-semibold">Zone:</span> {data.order_block?.range || "—"} • 
-          <span className="text-[#6c63ff] font-semibold"> Status:</span> {data.order_block?.status || "—"} • 
-          <span className="text-[#6c63ff] font-semibold"> Quality:</span> {data.order_block?.quality || "—"}
+          <span className="text-[#6c63ff] font-semibold">Zone:</span> {DOMPurify.sanitize(data.order_block?.range || "—")} • 
+          <span className="text-[#6c63ff] font-semibold"> Status:</span> {DOMPurify.sanitize(data.order_block?.status || "—")} • 
+          <span className="text-[#6c63ff] font-semibold"> Quality:</span> {DOMPurify.sanitize(data.order_block?.quality || "—")}
         </p>
-        <p className="text-xs text-muted">{data.order_block?.displacement_move || "—"}</p>
+        <p className="text-xs text-muted">{DOMPurify.sanitize(data.order_block?.displacement_move || "—")}</p>
       </div>
 
       {/* HTF FVG */}
@@ -71,11 +75,11 @@ export default function HTFCard({ data }) {
           <Zap size={10} /> HTF FVG
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#6c63ff] font-semibold">Above:</span> {data.fvg?.nearest_above || "—"} • 
-          <span className="text-[#6c63ff] font-semibold"> Below:</span> {data.fvg?.nearest_below || "—"}
+          <span className="text-[#6c63ff] font-semibold">Above:</span> {DOMPurify.sanitize(data.fvg?.nearest_above || "—")} • 
+          <span className="text-[#6c63ff] font-semibold"> Below:</span> {DOMPurify.sanitize(data.fvg?.nearest_below || "—")}
         </p>
         <p className="text-xs text-muted">
-          Fill: {data.fvg?.fill_probability || "—"} • 
+          Fill: {DOMPurify.sanitize(data.fvg?.fill_probability || "—")} • 
           {data.fvg?.likely_to_fill_before_continuation ? " Likely to fill before continuation" : " Unlikely to fill"}
         </p>
       </div>
@@ -86,14 +90,14 @@ export default function HTFCard({ data }) {
           <Activity size={10} /> HTF LIQUIDITY
         </div>
         <p className="text-xs text-main">
-          <span className="text-bearish font-semibold">BSL:</span> {data.liquidity?.bsl_location || "—"} • 
-          <span className="text-bullish font-semibold">SSL:</span> {data.liquidity?.ssl_location || "—"}
+          <span className="text-bearish font-semibold">BSL:</span> {DOMPurify.sanitize(data.liquidity?.bsl_location || "—")} • 
+          <span className="text-bullish font-semibold">SSL:</span> {DOMPurify.sanitize(data.liquidity?.ssl_location || "—")}
         </p>
         <p className="text-xs text-muted">
-          Swept: {data.liquidity?.swept_pools?.join(", ") || "None"} • 
-          Targets: {data.liquidity?.untouched_targets?.join(", ") || "None"}
+          Swept: {DOMPurify.sanitize(sweptPools)} • 
+          Targets: {DOMPurify.sanitize(untouchedTargets)}
         </p>
-        <p className="text-xs text-muted">Next target: {data.liquidity?.next_target || "—"}</p>
+        <p className="text-xs text-muted">Next target: {DOMPurify.sanitize(data.liquidity?.next_target || "—")}</p>
       </div>
 
       {/* HTF MARKET PHASE */}
@@ -102,10 +106,10 @@ export default function HTFCard({ data }) {
           <Activity size={10} /> HTF MARKET PHASE
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#6c63ff] font-semibold">Phase:</span> {data.market_phase?.phase || "—"} • 
-          <span className="text-[#6c63ff] font-semibold"> Range:</span> {data.market_phase?.dealing_range_percent || "—"}
+          <span className="text-[#6c63ff] font-semibold">Phase:</span> {DOMPurify.sanitize(data.market_phase?.phase || "—")} • 
+          <span className="text-[#6c63ff] font-semibold"> Range:</span> {DOMPurify.sanitize(data.market_phase?.dealing_range_percent || "—")}
         </p>
-        <p className="text-xs text-muted">{data.market_phase?.implication || "—"}</p>
+        <p className="text-xs text-muted">{DOMPurify.sanitize(data.market_phase?.implication || "—")}</p>
       </div>
 
       {/* HTF INDUCEMENT */}
@@ -115,10 +119,10 @@ export default function HTFCard({ data }) {
             <AlertTriangle size={10} /> ⚠ HTF INDUCEMENT DETECTED
           </div>
           <p className="text-xs text-bearish">
-            {inducement.flag_message || `Inducement at ${inducement.trap_location} — retail trapped ${inducement.direction} before real move ${inducement.real_move_direction}`}
+            {DOMPurify.sanitize(inducement.flag_message || `Inducement at ${inducement.trap_location} — retail trapped ${inducement.direction} before real move ${inducement.real_move_direction}`)}
           </p>
           <p className="text-[10px] text-muted mt-1">
-            Type: {inducement.trap_type} | Location: {inducement.trap_location}
+            Type: {DOMPurify.sanitize(inducement.trap_type)} | Location: {DOMPurify.sanitize(inducement.trap_location)}
           </p>
         </div>
       )}

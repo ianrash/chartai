@@ -1,5 +1,6 @@
-import { X, Trash2, ExternalLink, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp, Activity, Layers, BarChart2, Zap } from "lucide-react";
+import { X, Trash2, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import DOMPurify from "dompurify";
 
 export default function HistorySidebar({ history, onClose, onUpdateStatus, onDelete }) {
   const [expandedId, setExpandedId] = useState(null);
@@ -16,34 +17,34 @@ export default function HistorySidebar({ history, onClose, onUpdateStatus, onDel
         {a.htf_analysis && (
           <div className="bg-black/20 rounded-lg p-2">
             <p className="text-[10px] label uppercase mb-1">HTF Analysis</p>
-            <p className="text-xs text-main">{a.htf_analysis.trend?.direction} • {a.htf_analysis.structure?.overall || "—"}</p>
+            <p className="text-xs text-main">{DOMPurify.sanitize(a.htf_analysis.trend?.direction)} • {DOMPurify.sanitize(a.htf_analysis.structure?.overall || "—")}</p>
           </div>
         )}
         {a.ltf_analysis && (
           <div className="bg-black/20 rounded-lg p-2">
             <p className="text-[10px] label uppercase mb-1">LTF Analysis</p>
-            <p className="text-xs text-main">{a.ltf_analysis.trend?.direction} • {a.ltf_analysis.structure?.overall || "—"}</p>
+            <p className="text-xs text-main">{DOMPurify.sanitize(a.ltf_analysis.trend?.direction)} • {DOMPurify.sanitize(a.ltf_analysis.structure?.overall || "—")}</p>
           </div>
         )}
         {a.key_levels && (
           <div className="bg-black/20 rounded-lg p-2">
             <p className="text-[10px] label uppercase mb-1">Key Levels</p>
             <p className="text-xs text-main">
-              Demand: {a.key_levels.demand_zones?.[0]?.range || "—"} | Supply: {a.key_levels.supply_zones?.[0]?.range || "—"}
+              Demand: {DOMPurify.sanitize(a.key_levels.demand_zones?.[0]?.range || "—")} | Supply: {DOMPurify.sanitize(a.key_levels.supply_zones?.[0]?.range || "—")}
             </p>
           </div>
         )}
         {a.executive_summary && (
           <div className="bg-black/20 rounded-lg p-2">
             <p className="text-[10px] label uppercase mb-1">Summary</p>
-            <p className="text-xs text-main italic">"{a.executive_summary}"</p>
+            <p className="text-xs text-main italic">"{DOMPurify.sanitize(a.executive_summary)}"</p>
           </div>
         )}
         {a.trade_setup && (
           <div className="bg-accent/10 border border-accent/20 rounded-lg p-2">
             <p className="text-[10px] label uppercase mb-1">Trade Setup</p>
             <p className="text-xs text-main">
-              Bias: {a.trade_setup.bias} | Entry: {a.trade_setup.execution?.entry || "Market"} | R:R: {a.trade_setup.execution?.risk_reward || "—"}
+              Bias: {DOMPurify.sanitize(a.trade_setup.bias)} | Entry: {DOMPurify.sanitize(a.trade_setup.execution?.entry || "Market")} | R:R: {DOMPurify.sanitize(a.trade_setup.execution?.risk_reward || "—")}
             </p>
           </div>
         )}

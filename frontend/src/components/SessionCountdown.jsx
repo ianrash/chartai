@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 
 const SESSIONS = [
-  { name: "London", start: 9, end: 12, fullName: "London" },
-  { name: "New York", start: 15, end: 17, fullName: "New York" },
-  { name: "Asian", start: 23, end: 25, fullName: "Asian" },
+  { name: "Asian", start: 2, end: 10, fullName: "Asian" },
+  { name: "London", start: 10, end: 18, fullName: "London" },
+  { name: "New York", start: 16, end: 24, fullName: "New York" },
 ];
 
 const formatTime = (ms) => {

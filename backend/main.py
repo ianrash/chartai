@@ -1,76 +1,76 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()  # Load OPENAI_API_KEY from .env
-
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from analyzer import analyze_images
-from typing import List
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
-app = FastAPI(
-    title="ChartAI API",
-    description="AI-powered trading chart analysis via Gemini vision",
-    version="1.0.0",
-)
+app = FastAPI(title="ChartAI Backend API")
 
-# Allow configurable origins for production (e.g. your Vercel URL)
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins = os.getenv("ALLOWED_ORIGINS", "*")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-@app.get("/", summary="Health check")
-def root():
-    return {"status": "ok", "service": "ChartAI API"}
+class MessageContent(BaseModel):
+    type: str
+    text: str = None
+    image_url: dict = None
 
-@app.post("/analyze-charts/", summary="Analyze multiple trading charts")
-async def analyze_charts(
-    files: List[UploadFile] = File(...),
-    timeframes: List[str] = Form(...),
-    symbol: str = Form("Unknown"),
-    sessionDate: str = Form("Unknown")
-):
-    """
-    Accept multiple chart image uploads with timeframes, send to Gemini vision,
-    and return unified structured technical analysis as JSON.
-    """
-    if len(files) < 2:
-        raise HTTPException(status_code=400, detail="Minimum 2 charts required for analysis.")
-    if len(files) > 3:
-        raise HTTPException(status_code=400, detail="Maximum 3 charts allowed.")
-    if len(files) != len(timeframes):
-        raise HTTPException(status_code=400, detail="Number of files and timeframes must match.")
+class Message(BaseModel):
+    role: str
+    content: List[MessageContent]
 
-    charts_data = []
-    for file, tf in zip(files, timeframes):
-        if file.content_type not in ALLOWED_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file type '{file.content_type}'. Use PNG, JPEG, or WebP.",
-            )
+class AnalyzeRequest(BaseModel):
+    model: str
+    messages: List[Message]
+    temperature: float = 0.0
+    max_tokens: int = 2000
 
-        image_bytes = await file.read()
-        if len(image_bytes) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large. Max 10 MB.")
-            
-        charts_data.append({
-            "bytes": image_bytes,
-            "timeframe": tf,
-            "content_type": file.content_type
-        })
+@app.get("/health")
+async def health():
+    return {"status": "ok", "service": "chartai-backend"}
 
-    try:
-        result = await analyze_images(charts_data, symbol=symbol, sessionDate=sessionDate)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(exc)}")
+@app.post("/api/analyze")
+async def analyze_chart(request: AnalyzeRequest):
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not configured on server")
+    
+    import httpx
+    
+    request_body = {
+        "model": request.model,
+        "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+        "temperature": request.temperature,
+        "max_tokens": request.max_tokens,
+        "response_format": {"type": "json_object"}
+    }
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://chartai.app",
+                "X-Title": "AI Chart Analysis"
+            },
+            json=request_body
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        
+        return response.json()
 
-    return result
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
