@@ -89,11 +89,10 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       }
 
       const requestBody = {
-        model: "meta/llama-3.2-90b-vision-instruct",
+        model: "google/gemini-2.0-flash-exp",
         messages: [{ role: "user", content }],
         temperature: 0.0,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
+        max_tokens: 2000
       };
 
       const controller = new AbortController();
