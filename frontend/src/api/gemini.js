@@ -117,6 +117,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       if (!response.ok) {
         const errorText = await response.text();
         console.error("HTTP Error:", response.status, errorText);
+        alert("API Error: " + response.status + " - " + errorText);
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
