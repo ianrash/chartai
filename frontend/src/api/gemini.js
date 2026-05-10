@@ -54,14 +54,22 @@ function extractJson(text) {
   }
 }
 
-function getBackendUrl() {
-  return import.meta.env.VITE_API_URL || "/api";
+function getApiKey() {
+  return import.meta.env.VITE_OPENROUTER_API_KEY;
 }
 
 async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unknown", retries = 3) {
+  const apiKey = getApiKey();
+  
+  if (!apiKey) {
+    return {
+      error: "missing_api_key",
+      message: "OpenRouter API key not configured. Please set VITE_OPENROUTER_API_KEY in Netlify environment variables."
+    };
+  }
+
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const backendUrl = getBackendUrl();
       const contextStr = `Context:\n- Asset/Symbol: ${symbol}\n- Current Date/Time: ${sessionDate}\n\n`;
 
       const content = [
@@ -82,15 +90,21 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
         model: "google/gemini-flash-latest",
         messages: [{ role: "user", content }],
         temperature: 0.0,
-        max_tokens: 2000
+        max_tokens: 2000,
+        response_format: { type: "json_object" }
       };
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      const response = await fetch(`${backendUrl}/api/analyze`, {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://netlify.app",
+          "X-Title": "ChartAI"
+        },
         body: JSON.stringify(requestBody),
         signal: controller.signal
       });
@@ -104,7 +118,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Backend API error: ${response.status} - ${errorText}`);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
