@@ -48,7 +48,7 @@ function extractJson(text) {
       return {
         error: "parse_error",
         raw_response: text.slice(0, 500),
-        message: "Analysis formatting error - please try again"
+        message: "Analysis formatting error - Raw response: " + text.slice(0, 300)
       };
     }
   }
@@ -72,7 +72,15 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const contextStr = `Context:\n- Asset/Symbol: ${symbol}\n- Current Date/Time: ${sessionDate}\n\n`;
+      console.log("Processing images:", images.length, "charts");
+  const chartMeta = images.map((c, i) => `${i + 1}. ${c.timeframe || 'Unknown TF'}`).join(', ');
+  const contextStr = `Context:
+- Asset/Symbol: ${symbol}
+- Current Date/Time: ${sessionDate}
+- Timeframes uploaded (in order): ${chartMeta}
+
+CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if any).
+Analyze each chart in context of its timeframe.`;
 
       const content = [
         { type: "text", text: `${SYSTEM_PROMPT}\n\n${contextStr}Analyze these trading charts and return only valid JSON.` }
@@ -80,6 +88,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
 
       for (const chart of images) {
         const base64 = await fileToBase64(chart.file);
+        console.log(`Converted ${chart.timeframe} chart to base64, size: ${base64.length} chars`);
         content.push({
           type: "image_url",
           image_url: {
@@ -87,12 +96,14 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
           }
         });
       }
+      console.log(`Total images prepared: ${images.length}`);
 
       const requestBody = {
-        model: "google/gemini-2.0-flash-exp",
+        model: "google/gemini-2.5-flash",
         messages: [{ role: "user", content }],
         temperature: 0.0,
-        max_tokens: 2000
+        max_tokens: 8192,
+        response_format: { type: "json_object" }
       };
 
       const controller = new AbortController();
@@ -126,7 +137,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
       const data = await response.json();
 
       if (!data.choices || !data.choices[0]) {
-        throw new Error("No response from API");
+        throw new Error("No response from API: " + JSON.stringify(data));
       }
 
       const text = data.choices[0].message?.content || "";
@@ -134,7 +145,19 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
         throw new Error("Empty response from API");
       }
 
-      return extractJson(text);
+      const result = extractJson(text);
+      
+      // Debug logging for pattern detection
+      console.log('AI Response Debug:', {
+        hasPatterns: !!result.patterns,
+        patternsCount: result.patterns?.length || 0,
+        patterns: result.patterns,
+        m1Patterns: result.m1_analysis?.candlestick_patterns,
+        mtfPatterns: result.mtf_analysis?.candlestick_patterns,
+        allKeys: Object.keys(result)
+      });
+      
+      return result;
     } catch (error) {
       console.error("API Error:", error.message || String(error));
       
@@ -176,7 +199,7 @@ async function analyzeWithGemma(images, symbol = "Unknown", sessionDate = "Unkno
 
       return {
         error: "api_error",
-        message: "Analysis failed. Please try again.",
+        message: `Analysis failed: ${errorStr}`,
         original_error: errorStr
       };
     }

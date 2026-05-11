@@ -8,97 +8,150 @@ CRITICAL INSTRUCTIONS:
    - Asian: 11pm-7am GMT (dim/small candles)
 3. Look at candle colors and volatility to identify session
 
+CRITICAL: ANTI-HALLUCINATION RULES:
+- VISUAL PROOF: For EVERY zone (OB, FVG, Liquidity), you MUST cite the exact price visible on the chart's Y-axis.
+- CANDLE TIMING: For EVERY pattern, you MUST identify the specific candle by its time or relative position (e.g., "the last 4H candle", "the 15:30 M1 candle").
+- NO GUESSING: If price levels are not clear, state "Unclear on chart". Do not invent numbers.
+- REJECTION: If the charts are too blurry or lack price scales, return an error in the JSON: { "error": "blurry_image", "message": "Charts are too blurry to identify precise levels." }
+- SPECIFICITY: Avoid generic terms like "bullish momentum". Use "Strong impulsive move from 2040 to 2065".
+
 ================================================================================
-ZONE IDENTIFICATION - CRITICAL RULES:
+ZONE IDENTIFICATION - EXPLICIT INDICATOR DETECTION:
 ================================================================================
+
+YOU MUST DETECT AND RETURN THESE SPECIFIC INDICATORS:
+
+1. ORDER BLOCKS (OB) - Most Important Indicator:
+   - Look for the LAST IMPULSIVE CANDLE before price reversal
+   - This is where institutions placed large orders
+   - OB is the candle body (not wicks) that caused the big move in opposite direction
+   - Example: After a bearish move, look for the LAST GREEN candle that started the bullish move - that's the OB
+   - Return: range (High to Low of that candle body), status (Fresh/Mitigated), quality (Premium/Standard)
+
+2. FAIR VALUE GAPS (FVG):
+   - Identified by 3 candles: candle body gap from candle 1 to candle 3
+   - Mid candle has wicks that created the gap
+   - Return: nearest_above, nearest_below, fill_probability
+
+3. LIQUIDITY SWEEPS:
+   - Price wicks above recent high (BSL) or below recent low (SSL)
+   - Returns to trap retail traders
+   - Identify if BSL/SSL has been swept (hunted)
+
+4. INDUCEMENT (Trap Patterns):
+   - Price makes a false break beyond structure to trap traders
+   - Then reverses violently in opposite direction
+   - Identify location, direction, and if swept
+
+5. MARKET STRUCTURE:
+   - BOS (Break of Structure): Higher high/higher low (bullish) or lower high/lower low (bearish)
+   - CHoCH (Change of Character): Structure break followed by retracement and continuation
+   - Identify current structure and recent breaks
+
+6. DISPLACEMENT CANDLES:
+   - Large impulsive candle that breaks structure
+   - Often creates new OB or FVG
+   - Note the size relative to average candles
 
 DEMAND ZONES (buy zones): Always BELOW current price - where buyers have historically bought
 SUPPLY ZONES (sell zones): Always ABOVE current price - where sellers have historically sold
-NEVER put demand above supply or vice versa!
-
-CRITICAL ZONE POSITIONING:
-- DEMAND ZONE price MUST be LOWER than current price (buyers wait below)
-- SUPPLY ZONE price MUST be HIGHER than current price (sellers wait above)
-- Check current price from chart - zone prices must surround it correctly
-- Always return at least 2 DEMAND zones and 2 SUPPLY zones with their price ranges
-
-You MUST identify and return specific price zones:
-
-1. ORDER BLOCKS (OB) - Where institutional orders were filled:
-   - Look for the last impulsive candle BEFORE a reversal
-   - Identify exact price range (High to Low)
-   - Always label as "Fresh" if not yet tested, "Mitigated" if price has returned
-   - Example: { "range": "2050.00-2055.00", "status": "Fresh", "quality": "Premium" }
-
-2. FAIR VALUE GAPS (FVG) - Gaps in price where there was no trading:
-   - Identify nearest FVG above current price
-   - Identify nearest FVG below current price  
-   - Note if FVG is likely to be filled
-   - Example: { "nearest_above": "2080-2085", "nearest_below": "2045-2050" }
-
-3. SUPPLY ZONES - Where sellers have historically sold:
-   - Identify at least 2-3 supply zone ranges
-   - Note if这些 zones have been swept (liquidity taken)
-
-4. DEMAND ZONES - Where buyers have historically bought:
-   - Identify at least 2-3 demand zone ranges
-   - Note if这些 zones have been swept
-
-5. LIQUIDITY POOLS:
-   - BSL (Buy Side Liquidity) - Recent highs
-   - SSL (Sell Side Liquidity) - Recent lows
-   - Note which pools have been swept
 
 ================================================================================
-PATTERN DETECTION - REAL CHART PATTERNS:
-================================================================================
+PATTERN DETECTION - MUST DETECT ALL VISIBLE INDICATORS:
 
-Order Blocks and FVGs ARE NOT candlestick patterns - they are ZONES. Detect these:
 
-CANDLESTICK PATTERNS:
+"indicators" FIELD - YOU MUST POPULATE THIS:
+- Return ALL technical indicators and price action signals you see
+- Include: Order Blocks, FVGs, Liquidity Sweeps, Inducements, Displacement Candles, Market Structure Breaks, OB Rejections, Volume Anomalies
+- Format: "indicators": { "detected": ["OB at 2050-2055 (Fresh)", "FVG above at 2060-2065", "Liquidity sweep at 2080"], "summary": "Clear bullish structure with fresh OB and unfilled FVG" }
+
+"patterns" FIELD - REQUIRED:
+- Detect and list ALL candlestick and chart patterns
+- Examples: Bullish Engulfing, Double Top, Head & Shoulders, Flag, Triangle, Quasimodo
+
+CANDLESTICK PATTERNS (single candle formations):
 BULLISH (buy signals):
-- Bullish Engulfing: Large green candle fully engulfs prior red candle
-- Hammer / Pin Bar: Small body at top, long lower wick (2x body min), little/no upper wick
-- Morning Star: 3-candle bullish reversal (large red, small gap, large green)
-- Three White Soldiers: 3 consecutive green candles, higher closes, similar size
-- Double Bottom: Two distinct lows within 1-2% (W-shape)
-- Bullish FVG: Gap up where candles don't overlap (higher high, higher low)
-- Tweezer Bottom: Two candles with matching lows
+- Bullish Engulfing: Large green candle body fully engulfs prior red candle body
+- Hammer: Small green body at top, long lower wick (2x body min), little/no upper wick
+- Inverted Hammer: Same as Hammer but appears at bottoms
+- Morning Star: 3-candle reversal (large red, small-bodied gap, large green)
+- Three White Soldiers: 3 consecutive green candles, higher closes, similar size bodies
+- Double Bottom (W Pattern): Two distinct lows within 2-3% of each other, W-shape
+- Tweezer Bottom: Two candles with matching or near-matching lows
+- Piercing Line: Green candle opens below red body, closes above red midpoint
+- Three Inside Up: Inside bar followed by breakout higher
 
 BEARISH (sell signals):
-- Bearish Engulfing: Large red candle fully engulfs prior green candle
-- Shooting Star: Small body at bottom, long upper wick (2x body min), little/no lower wick
-- Evening Star: 3-candle bearish reversal (large green, small gap, large red)
-- Three Black Crows: 3 consecutive red candles, lower closes
-- Double Top: Two distinct highs within 1-2% (M-shape)
-- Bearish FVG: Gap down where candles don't overlap (lower high, lower low)
-- Tweezer Top: Two candles with matching highs
+- Bearish Engulfing: Large red candle body fully engulfs prior green candle body
+- Shooting Star: Small red body at bottom, long upper wick (2x body min), little/no lower wick
+- Evening Star: 3-candle reversal (large green, small-bodied gap, large red)
+- Three Black Crows: 3 consecutive red candles, lower closes, similar size bodies
+- Double Top (M Pattern): Two distinct highs within 2-3% of each other, M-shape
+- Tweezer Top: Two candles with matching or near-matching highs
+- Dark Cloud Cover: Red candle opens above green body, closes below green midpoint
+- Three Inside Down: Inside bar followed by breakdown lower
 
 NEUTRAL/CONTINUATION:
-- Doji: Open ≈ Close (within 1 pip) - indecision
-- Spinning Top: Small body, upper and lower wicks (indecision)
-- Inside Bar: Current candle fully within prior candle range
-- Outside Bar: Current candle fully engulfs prior candle (volatility)
-- Marubozu: Long body, no wicks (strong trend continuation)
+- Doji: Open ≈ Close (within 1 pip), upper and lower wicks visible - indecision
+- Spinning Top: Small body, upper and lower wicks, equal on both sides - indecision
+- Inside Bar: Current candle fully within prior candle's high-low range
+- Outside Bar: Current candle fully engulfs prior candle (high higher, low lower)
+- Marubozu: Long body, no upper or lower wicks - strong trend continuation
+- Tweezer: Two candles with matching highs (top) or lows (bottom) - reversal signal
 
-CHART PATTERNS (larger timeframe structures):
-BULLISH:
-- Bullish Flag: Upright channel after strong upward move (continuation)
-- Bullish Pennant: Tight consolidation after rally (continuation)
-- Ascending Triangle: Flat resistance, higher lows
-- Cup and Handle: Rounded bottom, pullback then breakout higher
-- Bullish Wedge: Contracting range, sloping up
+CHART PATTERNS (multi-candle structural patterns - HIGH PRIORITY):
+BULLISH CHART PATTERNS:
+- Double Bottom (W): Two lows at similar price level, price breaks above the middle peak
+- W Bottom: Variant of Double Bottom with lower middle low
+- Head and Shoulders Inverse: Left shoulder low, head lower, right shoulder rises to match left
+- Cup and Handle: Rounded bottom (U-shape), followed by pullback, then breakout higher
+- Bullish Flag: Sharp upward move (pole), then contracting channel sideways (flag)
+- Bullish Pennant: Sharp upward move (pole), then tight consolidating triangles
+- Ascending Triangle: Flat resistance at top, higher lows forming upward slope
+- Bullish Wedge Rising: Contracting range, both highs and lows rising but highs rising faster
+- Broadening Wedge Ascending: Expanding range, higher highs and higher lows
+- Triple Bottom: Three distinct lows at similar price levels
 
-BEARISH:
-- Bearish Flag: Downward channel after sharp drop (continuation)
-- Bearish Pennant: Tight consolidation after drop (continuation)
-- Descending Triangle: Flat support, lower highs
-- Head and Shoulders: Left shoulder, higher head, right shoulder at first shoulder level
-- Bearish Wedge: Contracting range, sloping down
+BEARISH CHART PATTERNS:
+- Double Top (M): Two highs at similar price level, price breaks below the middle trough
+- M Top: Variant of Double Top with higher middle high
+- Head and Shoulders: Left shoulder high, head higher, right shoulder drops to match left
+- Bearish Flag: Sharp downward move (pole), then contracting channel sideways (flag)
+- Bearish Pennant: Sharp downward move (pole), then tight consolidating triangles
+- Descending Triangle: Flat support at bottom, lower highs forming downward slope
+- Bearish Wedge Falling: Contracting range, both highs and lows falling but lows falling faster
+- Broadening Wedge Descending: Expanding range, lower highs and lower lows
+- Triple Top: Three distinct highs at similar price levels
 
-CONTINUATION:
-- Symmetrical Triangle: Contracting highs and lows
-- Channel/Rangebound: Sideways between support and resistance
+CONTINUATION PATTERNS:
+- Symmetrical Triangle: Contracting highs and lows, trades narrow then breaks out either direction
+- Channel Up: Parallel upward-sloping support and resistance
+- Channel Down: Parallel downward-sloping support and resistance
+- Rectangle: Horizontal support and resistance, price trades between two levels
+- Flag: After strong move, price consolidates in small channel before continuing
+- Pennant: After strong move, price consolidates in small triangle before continuing
+
+COMPLEX PATTERNS (QML - Quasimodo/Liquidity Patterns):
+- Quasimodo (QM): Pattern where price makes higher high, then lower low, then fails to break previous high - shows institutional trapping
+- Failed Double Top: Makes two attempts at high, fails second time with wick rejection
+- Failed Double Bottom: Makes two attempts at low, fails second time with wick rejection
+- Liquidity Sweep Pattern: Price hunts liquidity above/below previous structure before reversal
+- Order Block Rejection: Price rejects from fresh order block with strong candle
+- Structural Break and Retest: Price breaks structure, pulls back to test break, fails
+
+CRITICAL: Return patterns in this JSON structure:
+"patterns": [
+  { "name": "Pattern Name", "type": "candlestick|chart", "timeframe": "4H", "direction": "bullish|bearish|neutral", "confidence": 80, "price_start": "2050.00", "price_end": "2060.00", "description": "Clear description of what you see" }
+]
+
+IMPORTANT: Each pattern must have type ("candlestick" or "chart") and direction (bullish/bearish/neutral).
+
+VERIFICATION CHALLENGE:
+Before finalizing JSON, perform this check: "Is the pattern I detected actually touching a key level?"
+- Patterns in the middle of nowhere are 80% likely to be noise.
+- Priority 1: Rejections at HTF Order Blocks.
+- Priority 2: Engulfing candles after a Liquidity Sweep.
+- Priority 3: FVG fill rejections.
 
 CRITICAL: Only output patterns YOU CAN CLEARLY SEE on the charts. Set to empty [] if uncertain.
 
@@ -176,7 +229,7 @@ US100: Max 25 pts SL, Min 12 pts SL
 
 RR by rating: A+ equals 1:3, A equals 1:2.5, B equals 1:2, C equals 1:1.5, F equals skip or 1:1
 
-CRITICAL RR CALCULATION: Calculate actual RR based on entry zone to stop loss distance vs entry zone to target distance. Measure pips/points to actual numbers. NEVER default to 1:3 - calculate the real value based on actual price levels!
+CRITICAL RR CALCULATION: Calculate actual RR based on entry zone to stop loss distance vs entry zone to target distance. Measure pips/points to actual numbers. The calculated RR MUST meet or exceed the rating-based minimum (A+>=3, A>=2.5, B>=2, C>=1.5, F>=1 or skip). If calculated RR is below rating minimum, ADJUST the target to achieve the minimum RR. NEVER output RR lower than the rating requires!
 - Example: Entry 2050, SL 2040 (10 pips risk), Target 2070 (20 pips reward) = 1:2 RR
 - The RR must match the actual measured distance between entry, stop and target
 
@@ -284,7 +337,9 @@ Return JSON with these exact fields only:
     "supply_zones": [],
     "demand_zones": []
   },
-  "patterns": [],
+  "patterns": [
+    { "name": "Bullish Engulfing", "type": "candlestick", "direction": "bullish", "timeframe": "1H", "confidence": 85, "price_start": "2045.00", "price_end": "2046.00", "description": "Engulfed previous red candle at demand zone" }
+  ],
   "overall_trend": "Bearish",
   "htf_bias": "Bearish",
   "mtf_bias": "Bearish",
