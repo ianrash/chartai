@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   UploadCloud, BrainCircuit, Crosshair,
   ArrowRight, ChevronLeft, CheckCircle2,
@@ -13,16 +13,17 @@ const STEPS = [
     accent: '#3b82f6',
     accentBg: 'rgba(59,130,246,0.1)',
     icon: UploadCloud,
-    title: <>Upload Your <span>Chart Screenshots</span></>,
-    titleText: 'Upload Your Chart Screenshots',
-    desc: 'Take screenshots of your charts from TradingView, MT4, MT5, or any platform — and drop them into ChartAI.',
+    title: <>Drop Your <span>Charts</span></>,
+    titleText: 'Drop Your Charts',
+    desc: 'Drop screenshots from TradingView, MT4, MT5, or any platform into ChartAI.',
     image: '/images/onboarding-step1.png',
     imageAlt: 'How to upload chart screenshots',
+    tooltip: 'Step 1: Upload',
     tips: [
-      { icon: '📊', color: 'rgba(59,130,246,0.2)', text: 'Upload a Higher Timeframe (H4/D1) and a Lower Timeframe (M15/M5)' },
-      { icon: '✂️', color: 'rgba(108,99,255,0.2)', text: 'Crop tightly around the price action — no need for the full screen' },
-      { icon: '🔖', color: 'rgba(34,197,94,0.2)', text: 'Select the correct timeframe label for each chart after uploading' },
-      { icon: '🌐', color: 'rgba(245,158,11,0.2)', text: 'Works with any pair — Forex, Crypto, Indices, Commodities' },
+      { icon: '📊', color: 'rgba(59,130,246,0.2)', text: 'Use both a Higher Timeframe (H4/D1) and a Lower Timeframe (M15/M5)' },
+      { icon: '✂️', color: 'rgba(108,99,255,0.2)', text: 'Crop tightly around the price action' },
+      { icon: '🔖', color: 'rgba(34,197,94,0.2)', text: 'Label each chart with its correct timeframe' },
+      { icon: '🌐', color: 'rgba(245,158,11,0.2)', text: 'Works with any instrument — Forex, Crypto, Indices, Commodities' },
     ],
   },
   {
@@ -31,16 +32,17 @@ const STEPS = [
     accent: '#6c63ff',
     accentBg: 'rgba(108,99,255,0.1)',
     icon: BrainCircuit,
-    title: <>The AI <span>Scans & Analyses</span></>,
-    titleText: 'The AI Scans & Analyses',
-    desc: 'Once you hit Analyze, our model reads the market structure across your timeframes and detects key institutional zones.',
+    title: <>AI Analyzes <span>Your Charts</span></>,
+    titleText: 'AI Analyzes Your Charts',
+    desc: 'Hit Analyze and our model scans market structure across your timeframes — detecting institutional zones in seconds.',
     image: '/images/onboarding-step2.png',
     imageAlt: 'AI analyzing chart structure',
+    tooltip: 'Step 2: Analyze',
     tips: [
-      { icon: '🔍', color: 'rgba(108,99,255,0.2)', text: 'Identifies Order Blocks, Fair Value Gaps, and Break of Structure (BOS)' },
-      { icon: '📐', color: 'rgba(59,130,246,0.2)', text: 'Checks HTF bias alignment with LTF entry precision' },
-      { icon: '⚡', color: 'rgba(245,158,11,0.2)', text: 'Scans for liquidity sweeps, CHoCH, and premium/discount zones' },
-      { icon: '⏱️', color: 'rgba(34,197,94,0.2)', text: 'Full analysis delivered in under 10 seconds' },
+      { icon: '🔍', color: 'rgba(108,99,255,0.2)', text: 'Detects Order Blocks, Fair Value Gaps, and Break of Structure (BOS)' },
+      { icon: '📐', color: 'rgba(59,130,246,0.2)', text: 'Aligns HTF bias with LTF entry precision' },
+      { icon: '⚡', color: 'rgba(245,158,11,0.2)', text: 'Identifies liquidity sweeps, CHoCH, and premium/discount zones' },
+      { icon: '⏱️', color: 'rgba(34,197,94,0.2)', text: 'Full analysis in under 10 seconds' },
     ],
   },
   {
@@ -49,16 +51,17 @@ const STEPS = [
     accent: '#22c55e',
     accentBg: 'rgba(34,197,94,0.1)',
     icon: Crosshair,
-    title: <>Read Your <span>Trade Plan</span></>,
-    titleText: 'Read Your Trade Plan',
-    desc: 'Get a complete, graded trade plan with exact entry, stop loss, take profit, R:R ratio, and a full confluence checklist.',
+    title: <>Get Your <span>Trade Plan</span></>,
+    titleText: 'Get Your Trade Plan',
+    desc: 'Receive a complete, graded trade plan with exact entry, stop loss, take profit, R:R ratio, and confluence checklist.',
     image: '/images/onboarding-step3.png',
     imageAlt: 'AI-generated trade plan report',
+    tooltip: 'Step 3: Trade Plan',
     tips: [
-      { icon: '🏆', color: 'rgba(34,197,94,0.2)', text: 'Every setup is graded A+ to F — only take A or B rated setups' },
-      { icon: '🎯', color: 'rgba(108,99,255,0.2)', text: 'Precise entry zone, stop loss buffer, and take profit levels included' },
-      { icon: '📋', color: 'rgba(59,130,246,0.2)', text: 'Review the confluence checklist before placing any trade' },
-      { icon: '💾', color: 'rgba(245,158,11,0.2)', text: 'Save setups to your history, export as PDF, or share to WhatsApp / Telegram' },
+      { icon: '🏆', color: 'rgba(34,197,94,0.2)', text: 'Every setup graded A+ to F — only trade A or B rated setups' },
+      { icon: '🎯', color: 'rgba(108,99,255,0.2)', text: 'Exact entry zone, stop loss buffer, and take profit levels included' },
+      { icon: '📋', color: 'rgba(59,130,246,0.2)', text: 'Check the confluence checklist before trading' },
+      { icon: '💾', color: 'rgba(245,158,11,0.2)', text: 'Save to history, export as PDF, or share via WhatsApp / Telegram' },
     ],
   },
 ];
@@ -67,15 +70,46 @@ export default function OnboardingModal({ onComplete }) {
   const [step, setStep] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState('next');
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const contentRef = useRef(null);
+  const nextBtnRef = useRef(null);
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
   const progress = ((step + 1) / STEPS.length) * 100;
 
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && !isLast) {
+      goTo(step + 1, 'next');
+    } else if (isRightSwipe && step > 0) {
+      goTo(step - 1, 'back');
+    }
+  };
+
   const goTo = useCallback((nextStep, dir = 'next') => {
     if (animating) return;
     setAnimating(true);
     setDirection(dir);
+    setImageLoaded(false);
     setTimeout(() => {
       setStep(nextStep);
       setAnimating(false);
@@ -83,7 +117,11 @@ export default function OnboardingModal({ onComplete }) {
   }, [animating]);
 
   const handleNext = useCallback(() => {
-    if (isLast) { onComplete(); return; }
+    if (isLast) {
+      setShowCompletion(true);
+      setTimeout(() => onComplete(), 400);
+      return;
+    }
     goTo(step + 1, 'next');
   }, [isLast, onComplete, goTo, step]);
 
@@ -92,7 +130,12 @@ export default function OnboardingModal({ onComplete }) {
     goTo(step - 1, 'back');
   }, [step, goTo]);
 
-  // Keyboard navigation
+  useEffect(() => {
+    if (nextBtnRef.current) {
+      nextBtnRef.current.focus();
+    }
+  }, [step]);
+
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'ArrowRight' || e.key === 'Enter') handleNext();
@@ -103,8 +146,18 @@ export default function OnboardingModal({ onComplete }) {
     return () => window.removeEventListener('keydown', handler);
   }, [step, animating, handleNext, handleBack, onComplete]);
 
+  const slideClass = direction === 'back' ? 'ob-slide-enter-back' : 'ob-slide-enter';
+
   return (
-    <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-label="ChartAI Onboarding">
+    <div 
+      className="onboarding-overlay" 
+      role="dialog" 
+      aria-modal="true" 
+      aria-label="ChartAI Onboarding"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="onboarding-modal">
 
         {/* Skip */}
@@ -120,15 +173,24 @@ export default function OnboardingModal({ onComplete }) {
               className={`ob-dot ${i === step ? 'active' : i < step ? 'done' : ''}`}
               onClick={() => i !== step && goTo(i, i > step ? 'next' : 'back')}
               role="button"
-              aria-label={`Go to step ${i + 1}`}
+              tabIndex={0}
+              aria-label={`Go to ${s.tooltip}`}
+              data-tooltip={s.tooltip}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  i !== step && goTo(i, i > step ? 'next' : 'back');
+                }
+              }}
             />
           ))}
         </div>
 
         {/* Main content */}
         <div
+          ref={contentRef}
           key={step}
-          className={`ob-content ob-slide-enter`}
+          className={`ob-content ${slideClass}`}
         >
           {/* Left: Text */}
           <div className="ob-text">
@@ -165,11 +227,18 @@ export default function OnboardingModal({ onComplete }) {
                 </button>
               )}
               <button
+                ref={nextBtnRef}
                 id={`ob-btn-step-${step + 1}`}
-                className={`ob-btn-next ${isLast ? 'ob-btn-finish' : ''}`}
+                className={`ob-btn-next ${isLast ? 'ob-btn-finish' : ''} ${showCompletion ? 'completing' : ''}`}
                 onClick={handleNext}
+                aria-label={isLast ? 'Start analyzing' : 'Next step'}
               >
-                {isLast ? (
+                {showCompletion ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    Done!
+                  </>
+                ) : isLast ? (
                   <>
                     <CheckCircle2 size={16} />
                     Start Analyzing
@@ -186,12 +255,16 @@ export default function OnboardingModal({ onComplete }) {
 
           {/* Right: Image */}
           <div className="ob-image-panel">
-            <img
-              src={current.image}
-              alt={current.imageAlt}
-              className="ob-image"
-              draggable={false}
-            />
+            <div className="ob-image-wrap">
+              {!imageLoaded && <div className="ob-image-skeleton" />}
+              <img
+                src={current.image}
+                alt={current.imageAlt}
+                className={`ob-image ${imageLoaded ? 'loaded' : ''}`}
+                draggable={false}
+                onLoad={() => setImageLoaded(true)}
+              />
+            </div>
           </div>
         </div>
 
