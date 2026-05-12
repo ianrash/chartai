@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 const ALLOWED_NETLIFY_URLS = [
-  'https://chartai.netlify.app',
+  'https://chartanalystai.netlify.app',
   'https://chartai-*.netlify.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
