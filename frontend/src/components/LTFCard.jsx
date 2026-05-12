@@ -20,8 +20,8 @@ export default function LTFCard({ data, htfDirection }) {
 
   // Determine confirmation color based on HTF direction
   const isConfirming = data.trend?.confirmation === "Confirms HTF";
-  const htfIsBearish = htfDirection === "Bearish" || htfDirection?.toLowerCase().includes("bearish");
-  const htfIsBullish = htfDirection === "Bullish" || htfDirection?.toLowerCase().includes("bullish");
+  const htfIsBearish = htfDirection === "Bearish" || (typeof htfDirection === 'string' && htfDirection.toLowerCase().includes("bearish"));
+  const htfIsBullish = htfDirection === "Bullish" || (typeof htfDirection === 'string' && htfDirection.toLowerCase().includes("bullish"));
   
   // If HTF is bearish and Ltf confirms = show red
   // If HTF is bullish and Ltf confirms = show green

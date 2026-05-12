@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import { Upload, X, ChevronDown, BarChart2, Info, Image } from "lucide-react";
+import { Upload, X, ChevronDown, BarChart2, Info, Image, TrendingUp, Target } from "lucide-react";
 
 const TIMEFRAMES = [
   { value: "", label: "Select TF" },
@@ -9,7 +9,6 @@ const TIMEFRAMES = [
 export default function UploadZone({ charts, onChartsChange, onChartClick }) {
   const [isDragging, setIsDragging] = useState(false);
 
-  // Cleanup function to revoke all blob URLs when component unmounts
   useEffect(() => {
     return () => {
       charts.forEach(chart => {
@@ -61,7 +60,6 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
 
   const onFileChange = (e) => handleFile(e.target.files[0]);
 
-  // Fix memory leak - revoke blob URL when removing charts
   const removeChart = (id) => {
     const chartToRemove = charts.find(c => c.id === id);
     if (chartToRemove && chartToRemove.preview) {
@@ -76,38 +74,56 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* List of uploaded charts */}
       {charts.length > 0 && (
         <div className="flex flex-col gap-3">
           {charts.map((chart, idx) => (
-            <div key={chart.id} className="card p-3 flex items-center gap-4 bg-surface-2 animate-fade-in border border-white/10">
-              <div className="relative">
+            <div 
+              key={chart.id} 
+              className="card p-3 flex items-center gap-4 animate-fade-in-up"
+              style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+            >
+              <div className="relative group">
                 <img 
                   src={chart.preview} 
                   alt={`Chart ${idx+1}`} 
-                  className="w-16 h-16 object-cover rounded-lg bg-black/50 cursor-zoom-in"
+                  className="w-16 h-16 object-cover rounded-xl cursor-zoom-in transition-transform group-hover:scale-105"
+                  style={{ background: 'var(--surface)' }}
                   onClick={() => onChartClick && onChartClick(chart)}
                 />
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors rounded-lg cursor-zoom-in flex items-center justify-center" onClick={() => onChartClick && onChartClick(chart)}>
-                  <span className="opacity-0 hover:opacity-100 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">Zoom</span>
+                <div 
+                  className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-zoom-in"
+                  style={{ background: 'rgba(0,0,0,0.5)' }}
+                  onClick={() => onChartClick && onChartClick(chart)}
+                >
+                  <span className="text-white text-[10px] font-medium px-2 py-1 rounded-md" style={{ background: 'var(--accent)' }}>Zoom</span>
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-main mb-1">Chart {idx+1}</p>
+                <p className="text-sm font-display font-semibold text-main mb-2">Chart {idx+1}</p>
                 <div className="relative inline-block">
                   <select
                     value={chart.timeframe}
                     onChange={(e) => updateTimeframe(chart.id, e.target.value)}
-                    className={`appearance-none bg-surface border text-xs rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:border-accent ${!chart.timeframe ? 'border-yellow-500/50 text-yellow-500' : 'border-white/10 text-main'}`}
+                    className={`appearance-none bg-surface border text-xs rounded-lg pl-3 pr-8 py-2 focus:outline-none transition-all cursor-pointer
+                      ${!chart.timeframe 
+                        ? 'border-amber-500/50 text-amber-500' 
+                        : 'border border-gray-600/30 text-main hover:border-gray-500/50'
+                      }`}
+                    style={{ background: 'var(--surface)' }}
                   >
                     {TIMEFRAMES.map(tf => typeof tf === 'object' ? <option key={tf.value} value={tf.value}>{tf.label}</option> : <option key={tf} value={tf}>{tf}</option>)}
                   </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none" size={12} />
+                  <ChevronDown 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" 
+                    size={14} 
+                    style={{ color: 'var(--muted)' }} 
+                  />
                 </div>
               </div>
               <button 
                 onClick={() => removeChart(chart.id)}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 text-muted hover:text-bearish transition-colors"
+                className="w-9 h-9 rounded-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+                style={{ background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)' }}
                 title="Remove chart"
               >
                 <X size={16} />
@@ -117,14 +133,20 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
         </div>
       )}
 
-      {/* Dropzone for adding more */}
       {charts.length < 3 && (
         <div
           className={`relative rounded-2xl border-2 border-dashed transition-all duration-300 overflow-hidden flex flex-col items-center justify-center text-center
-            ${isDragging ? "border-accent bg-accent/10 scale-[1.01]" : "border-white/10 bg-surface hover:border-accent/40 hover:bg-surface-2"}
-            ${charts.length > 0 ? "py-8" : "py-16 px-8"}
+            ${isDragging 
+              ? "scale-[1.01]" 
+              : "hover:scale-[1.005] hover:border-dashed"
+            }
+            ${charts.length > 0 ? "py-8 px-6" : "py-16 px-8"}
           `}
-          style={{ minHeight: charts.length > 0 ? 120 : 320 }}
+          style={{ 
+            minHeight: charts.length > 0 ? 140 : 340,
+            borderColor: isDragging ? 'var(--accent)' : 'var(--border)',
+            background: isDragging ? 'var(--accent-glow)' : 'var(--surface)',
+          }}
           onDrop={onDrop}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
@@ -137,35 +159,44 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
           />
           {charts.length === 0 ? (
             <>
-              {/* Illustrated empty state */}
-              <div className="relative mb-4">
-                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center border border-accent/20">
-                  <Image className="text-accent/60" size={40} />
+              <div className="relative mb-6">
+                <div 
+                  className="w-28 h-28 rounded-3xl flex items-center justify-center border animate-float"
+                  style={{ 
+                    background: 'linear-gradient(135deg, var(--accent-glow), var(--surface-2))', 
+                    borderColor: 'var(--accent)',
+                    boxShadow: '0 0 40px var(--accent-glow)'
+                  }}
+                >
+                  <Image className="text-accent" size={48} />
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-surface border border-white/10 flex items-center justify-center">
-                  <BarChart2 className="text-muted" size={18} />
+                <div 
+                  className="absolute -bottom-2 -right-2 w-12 h-12 rounded-xl flex items-center justify-center animate-pulse"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                >
+                  <BarChart2 className="text-accent" size={20} />
                 </div>
               </div>
-              <p className="text-main font-semibold mb-1">Drop your chart here</p>
-              <p className="text-muted text-xs mb-4">or click to browse — PNG, JPG, WebP</p>
+              
+              <p className="text-main font-display font-semibold text-lg mb-2">Drop your chart here</p>
+              <p className="text-muted text-sm mb-6">or click to browse — PNG, JPG, WebP</p>
 
-              {/* Helpful tips */}
-              <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-                <div className="group relative px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-xs text-accent cursor-help">
-                  <span className="flex items-center gap-1.5"><BarChart2 size={12} /> HTF + LTF</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface border border-white/10 rounded-lg text-xs text-main w-48 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              <div className="flex flex-wrap justify-center gap-3">
+                <div className="group relative px-4 py-2.5 rounded-xl border text-xs font-medium cursor-help transition-all hover:scale-105" style={{ background: 'var(--accent-glow)', borderColor: 'rgba(245, 158, 11, 0.3)', color: 'var(--accent)' }}>
+                  <span className="flex items-center gap-2"><BarChart2 size={14} /> HTF + LTF</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-3 rounded-xl text-xs text-secondary w-56 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
                     Upload at least 2 charts: Higher timeframe (4H/D1) and lower timeframe (15m/1H)
                   </div>
                 </div>
-                <div className="group relative px-3 py-1.5 rounded-lg bg-bullish/10 border border-bullish/20 text-xs text-bullish cursor-help">
-                  <span className="flex items-center gap-1.5">📈 Clear charts</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface border border-white/10 rounded-lg text-xs text-main w-48 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                <div className="group relative px-4 py-2.5 rounded-xl border text-xs font-medium cursor-help transition-all hover:scale-105" style={{ background: 'var(--bullish-glow)', borderColor: 'rgba(16, 185, 129, 0.3)', color: 'var(--bullish)' }}>
+                  <span className="flex items-center gap-2"><TrendingUp size={14} /> Clear charts</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-3 rounded-xl text-xs text-secondary w-56 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
                     Use clean charts with visible price action, structure, and liquidity levels
                   </div>
                 </div>
-                <div className="group relative px-3 py-1.5 rounded-lg bg-neutral/10 border border-neutral/20 text-xs text-neutral cursor-help">
-                  <span className="flex items-center gap-1.5">🎯 Mark timeframes</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface border border-white/10 rounded-lg text-xs text-main w-48 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                <div className="group relative px-4 py-2.5 rounded-xl border text-xs font-medium cursor-help transition-all hover:scale-105" style={{ background: 'rgba(251, 191, 36, 0.1)', borderColor: 'rgba(251, 191, 36, 0.3)', color: 'var(--neutral)' }}>
+                  <span className="flex items-center gap-2"><Target size={14} /> Mark timeframes</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-3 rounded-xl text-xs text-secondary w-56 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
                     Select the correct timeframe for each chart after uploading
                   </div>
                 </div>
@@ -173,11 +204,14 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
             </>
           ) : (
             <>
-              <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-3">
-                <Upload className="text-accent" size={20} />
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: 'var(--accent-glow)', border: '1px solid var(--accent)' }}
+              >
+                <Upload className="text-accent" size={24} />
               </div>
-              <p className="text-main font-semibold mb-1">Add another chart</p>
-              <p className="text-muted text-xs">
+              <p className="text-main font-display font-semibold mb-1">Add another chart</p>
+              <p className="text-muted text-sm">
                 ({charts.length}/3 uploaded)
               </p>
             </>

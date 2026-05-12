@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { TrendingUp, Layers, Zap, ShieldCheck, Crosshair, BarChart2, ChevronRight, ChevronDown, UploadCloud, BrainCircuit, ArrowRight, Sparkles, Target, LineChart, Check, Crown, Clock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { UploadCloud, BrainCircuit, Crosshair, Check, ArrowRight, ChevronDown, LineChart, Layers, ShieldCheck, Target, BarChart2 } from 'lucide-react';
 import './LandingPage.css';
 
 function useReveal() {
@@ -7,48 +7,87 @@ function useReveal() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) el.classList.add('visible'); }, { threshold: 0.12 });
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('is-visible'); },
+      { threshold: 0.08 }
+    );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
   return ref;
 }
 
-function Particles() {
-  const items = useMemo(() => Array.from({ length: 15 }, (_, i) => ({ id: i, left: `${Math.random()*100}%`, delay: `${Math.random()*8}s`, dur: `${6+Math.random()*8}s`, size: `${2+Math.random()*3}px`, op: 0.2+Math.random()*0.4 })), []);
-  return items.map(p => <div key={p.id} className="particle" style={{ left: p.left, bottom: '-10px', width: p.size, height: p.size, opacity: p.op, animation: `particleFloat ${p.dur} ${p.delay} ease-in-out infinite` }} />);
+const TICKERS = [
+  { symbol: 'EUR/USD', trend: 'bullish' },
+  { symbol: 'GBP/JPY', trend: 'bearish' },
+  { symbol: 'XAU/USD', trend: 'bullish' },
+  { symbol: 'BTC/USD', trend: 'bullish' },
+  { symbol: 'NAS100', trend: 'bearish' },
+  { symbol: 'US30', trend: 'neutral' },
+  { symbol: 'SPX500', trend: 'bullish' },
+  { symbol: 'GBP/USD', trend: 'neutral' },
+  { symbol: 'AUD/USD', trend: 'bearish' },
+  { symbol: 'USD/CAD', trend: 'bullish' },
+];
+
+function TickerTape() {
+  const all = [...TICKERS, ...TICKERS];
+  return (
+    <div className="lp-ticker">
+      <div className="lp-ticker-track">
+        {all.map((t, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            <span className={`lp-ticker-item ${t.trend}`}>{t.symbol}</span>
+            <span className="lp-ticker-sep">/</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function HeroChartSVG() {
-  return (<div className="price-line"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0,180 C100,170 150,120 200,140 C250,160 300,80 400,100 C500,120 550,40 650,60 C750,80 800,30 900,50 C950,60 1000,20 1100,40 L1200,35" fill="none" stroke="url(#lg)" strokeWidth="2"/><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#6c63ff"/><stop offset="50%" stopColor="#3b82f6"/><stop offset="100%" stopColor="#22c55e"/></linearGradient></defs></svg></div>);
-}
-
-const TICKERS = ['EUR/USD','GBP/JPY','XAU/USD','BTC/USD','NAS100','US30','SPX500','GBP/USD','AUD/USD','USD/CAD'];
-
-function TickerTape() {
-  const d = [...TICKERS,...TICKERS];
-  return (<div className="w-full overflow-hidden border-y border-white/5 py-3" style={{background:'rgba(22,27,39,0.5)'}}><div className="ticker-tape">{d.map((t,i)=><span key={i} className="text-xs font-mono tracking-widest uppercase" style={{color:'var(--muted)',opacity:0.5}}>{t}</span>)}</div></div>);
+  return (
+    <div className="lp-hero-chart">
+      <svg viewBox="0 0 1440 220" preserveAspectRatio="none">
+        <path d="M0,200 C60,185 100,150 160,165 C220,180 280,120 360,135 C440,150 500,80 580,95 C660,110 720,60 800,75 C880,90 940,40 1020,55 C1100,70 1160,30 1220,45 C1280,60 1340,20 1440,30 L1440,220 L0,220 Z" fill="rgba(200,130,10,0.05)" />
+        <path d="M0,180 C80,165 120,130 180,148 C240,166 300,100 380,118 C460,136 520,70 600,88 C680,106 740,50 820,65 C900,80 960,35 1040,50 C1120,65 1180,25 1260,40 C1320,52 1380,20 1440,35" />
+      </svg>
+    </div>
+  );
 }
 
 function FAQ() {
   const [open, setOpen] = useState(null);
-  const items = [
-    { q: 'What trading pairs does ChartAI support?', a: 'ChartAI works with any instrument — forex pairs, crypto, indices, commodities, and stocks. Simply upload screenshots from any charting platform.' },
-    { q: 'How accurate is the AI analysis?', a: 'Our model identifies structural patterns with high precision. Every setup is graded A+ to F so you can filter for only the highest-probability trades.' },
-    { q: 'Do I need coding or AI experience?', a: 'Not at all. Upload your chart screenshots, and ChartAI handles the rest — delivering a complete trade plan in seconds.' },
-    { q: 'Is my chart data secure?', a: 'Yes. Your uploaded images are processed in real-time and are never stored permanently. We take data privacy seriously.' },
-  ];
   const ref = useReveal();
+  const items = [
+    {
+      q: 'What trading pairs does ChartAI support?',
+      a: 'ChartAI works with any instrument — forex, crypto, indices, commodities, and stocks. Just upload screenshots from your charting platform and let the AI do the rest.',
+    },
+    {
+      q: 'How accurate is the AI analysis?',
+      a: 'Our model identifies structural patterns with precision. Every setup is graded A+ to F through a confluence checklist — so you filter out the noise and focus on high-probability trades.',
+    },
+    {
+      q: 'Do I need coding or AI experience?',
+      a: 'Upload your chart screenshots, select timeframes, and in seconds receive a complete trade plan with entry, stop, target, and R:R ratio.',
+    },
+    {
+      q: 'Is my chart data secure?',
+      a: 'Yes. Uploaded images are processed in real-time and never stored permanently on our servers. Your trading data stays yours.',
+    },
+  ];
   return (
-    <div ref={ref} className="reveal max-w-3xl mx-auto flex flex-col gap-3">
+    <div ref={ref} className="lp-reveal">
       {items.map((it, i) => (
-        <div key={i} className="faq-item">
-          <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left">
-            <span className="font-semibold text-sm sm:text-base" style={{color:'var(--text-main)'}}>{it.q}</span>
-            <ChevronDown size={18} style={{color:'var(--muted)', transform: open===i?'rotate(180deg)':'rotate(0)', transition:'transform 0.3s'}} />
+        <div key={i} className={`lp-faq-item${open === i ? ' open' : ''}`}>
+          <button className="lp-faq-question" onClick={() => setOpen(open === i ? null : i)}>
+            {it.q}
+            <ChevronDown size={16} className="lp-faq-chevron" />
           </button>
-          <div className={`faq-answer ${open===i?'open':''}`}>
-            <p className="text-sm leading-relaxed" style={{color:'var(--muted)'}}>{it.a}</p>
+          <div className={`lp-faq-answer${open === i ? ' open' : ''}`}>
+            <div className="lp-faq-answer-inner">{it.a}</div>
           </div>
         </div>
       ))}
@@ -57,257 +96,362 @@ function FAQ() {
 }
 
 export default function LandingPage({ onGetStarted }) {
-  const r1=useReveal(), r2=useReveal(), r3=useReveal(), r4=useReveal(), r5=useReveal(), r6=useReveal(), r7=useReveal();
+  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal();
 
   return (
-    <div className="min-h-screen font-sans selection:bg-accent/30 selection:text-white" style={{background:'var(--bg)',color:'var(--text-main)'}}>
+    <div className="min-h-screen" style={{ background: '#0a0a0e', color: '#f4f4f5' }}>
 
-      {/* BG */}
+      {/* BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="landing-grid-bg"/><div className="orb orb-1"/><div className="orb orb-2"/><div className="orb orb-3"/><Particles/>
+        <div className="lp-dot-grid" />
       </div>
 
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{background:'rgba(13,15,20,0.6)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#6c63ff,#4f46e5)',boxShadow:'0 0 20px rgba(108,99,255,0.4)'}}>
-              <TrendingUp size={15} className="text-white"/>
-            </div>
-            <span className="font-bold text-base sm:text-lg tracking-tight">Chart<span style={{color:'#6c63ff'}}>AI</span></span>
+      <nav className="lp-nav fixed top-0 left-0 right-0 z-50">
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+          <div className="lp-nav-logo">
+            <img src="/favicon.svg" alt="ChartAI" className="lp-nav-logo-mark" />
+            <span className="font-bold text-base tracking-tight" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Chart<span style={{ color: '#c8820a' }}>AI</span>
+            </span>
           </div>
-          <button onClick={onGetStarted} className="btn-nav">Sign In</button>
+          <button onClick={onGetStarted} className="lp-nav-login">Login</button>
         </div>
       </nav>
 
-      {/* ═══ HERO ═══ */}
-      <section className="relative pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-44 lg:pb-28 overflow-hidden flex flex-col items-center justify-center text-center px-4 sm:px-6" style={{minHeight:'85vh'}}>
-        <HeroChartSVG/>
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="hero-enter hero-enter-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium mb-6 sm:mb-8" style={{background:'rgba(108,99,255,0.08)',border:'1px solid rgba(108,99,255,0.2)',color:'#6c63ff'}}>
-            <Sparkles size={14}/><span>AI-Powered Trading Intelligence</span>
-          </div>
-          <h1 className="hero-enter hero-enter-2 text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-[1.1]">
-            Your Charts.{' '}<span className="text-transparent bg-clip-text" style={{backgroundImage:'linear-gradient(135deg,#6c63ff,#3b82f6,#22c55e)',WebkitBackgroundClip:'text'}}>Decoded by AI.</span>
-          </h1>
-          <p className="hero-enter hero-enter-3 text-sm sm:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-12 leading-relaxed px-2" style={{color:'var(--muted)'}}>
-            Upload your multi-timeframe charts and receive institutional-grade trade setups — complete with order blocks, fair value gaps, and graded confluence scoring.
-          </p>
-          <div className="hero-enter hero-enter-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-0">
-            <button onClick={onGetStarted} className="btn-glow">Get Started Free <ArrowRight size={18}/></button>
-            <button onClick={onGetStarted} className="btn-ghost"><LineChart size={16}/>See How It Works</button>
-          </div>
-          <div className="hero-enter hero-enter-4 mt-10 sm:mt-14 flex flex-wrap items-center justify-center gap-6 sm:gap-8" style={{opacity:0.5}}>
-            {[{val:'2,400+',label:'Charts Analyzed'},{val:'98%',label:'Accuracy Rate'},{val:'< 10s',label:'Analysis Time'}].map((s,i)=>(
-              <div key={i} className="text-center">
-                <div className="text-lg sm:text-xl font-bold stat-glow" style={{color:'#6c63ff'}}>{s.val}</div>
-                <div className="text-[10px] sm:text-[11px] uppercase tracking-widest mt-1" style={{color:'var(--muted)'}}>{s.label}</div>
+      {/* HERO */}
+      <section className="lp-hero relative px-5">
+        <HeroChartSVG />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div style={{ maxWidth: 680 }}>
+            <div className="lp-hero-child">
+              <div className="lp-hero-label">
+                <span className="lp-hero-label-dot" />
+                <span>Trading Intelligence</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
 
-      <TickerTape/>
+            <div className="lp-hero-child">
+              <h1 className="lp-hero-title">
+                Your charts,<br /><em>decoded by AI.</em>
+              </h1>
+            </div>
 
-      {/* ═══ SHOWCASE IMAGE ═══ */}
-      <section className="py-12 sm:py-20 relative overflow-hidden">
-        <div ref={r1} className="reveal max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="showcase-img"><img src="/images/dashboard-mobile.png" alt="ChartAI dashboard on laptop and mobile" loading="lazy"/></div>
-          <p className="text-center text-xs sm:text-sm mt-4 sm:mt-6" style={{color:'var(--muted)'}}>ChartAI works seamlessly across desktop and mobile devices</p>
-        </div>
-      </section>
+            <div className="lp-hero-child">
+              <p className="lp-hero-sub">
+                Upload multi-timeframe charts and receive institutional-grade trade setups — with order blocks, FVGs, liquidity zones, and a graded confluence score.
+              </p>
+            </div>
 
-      <div className="section-divider max-w-4xl mx-auto"/>
+            <div className="lp-hero-child">
+              <div className="lp-hero-actions">
+                <button onClick={onGetStarted} className="lp-btn-primary">
+                  Get Started Free <ArrowRight size={16} />
+                </button>
+                <button onClick={onGetStarted} className="lp-btn-secondary">
+                  <LineChart size={15} /> See How It Works
+                </button>
+              </div>
+            </div>
 
-      {/* ═══ HOW IT WORKS ═══ */}
-      <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div ref={r2} className="reveal text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4" style={{background:'rgba(108,99,255,0.08)',border:'1px solid rgba(108,99,255,0.15)',color:'#6c63ff'}}>How it works</div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Three Steps to a Professional Edge</h2>
-            <p className="text-sm sm:text-base max-w-xl mx-auto" style={{color:'var(--muted)'}}>From raw screenshots to a full trade plan in under 10 seconds.</p>
-          </div>
-          <div ref={r3} className="reveal-stagger grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {[
-              {icon:UploadCloud,title:'Upload Charts',desc:'Drop your HTF and LTF chart screenshots. We accept any pair, crypto, index, or commodity.',color:'#3b82f6',num:'01'},
-              {icon:BrainCircuit,title:'AI Scans Structure',desc:'Our model identifies order blocks, FVGs, liquidity sweeps, BOS/CHoCH, and key price zones.',color:'#6c63ff',num:'02'},
-              {icon:Crosshair,title:'Execute the Plan',desc:'Get a graded setup (A+ to F) with precise entry, SL, TP, R:R, and confluence checklist.',color:'#22c55e',num:'03'},
-            ].map((step,i)=>(
-              <div key={i} className="glass-card group">
-                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center" style={{background:`${step.color}15`,border:`1px solid ${step.color}30`}}>
-                    <step.icon size={20} style={{color:step.color}}/>
+            <div className="lp-hero-child" style={{ marginTop: 40 }}>
+              <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                {[
+                  { v: '2,400+', l: 'Charts Analyzed' },
+                  { v: '4 Tools', l: 'In Every Setup' },
+                  { v: '< 10s', l: 'Analysis Time' },
+                ].map((s, i) => (
+                  <div key={i} style={{ textAlign: 'left' }}>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: '#c8820a', letterSpacing: '-0.02em' }}>{s.v}</div>
+                    <div style={{ fontSize: 11, color: '#8888a0', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>{s.l}</div>
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest" style={{color:step.color,opacity:0.7}}>{step.num}</span>
-                </div>
-                <h3 className="text-base sm:text-lg font-bold mb-2">{step.title}</h3>
-                <p className="text-xs sm:text-sm leading-relaxed" style={{color:'var(--muted)'}}>{step.desc}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <TickerTape />
+
+      {/* SHOWCASE */}
+      <section className="py-16 sm:py-24 relative">
+        <div ref={r1} className="lp-reveal max-w-5xl mx-auto px-5">
+          <div className="lp-showcase">
+            <img src="/images/dashboard-mobile.png" alt="ChartAI dashboard" loading="lazy" />
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#8888a0', marginTop: 16 }}>
+            Works across desktop and mobile — no downloads required
+          </p>
+        </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
+
+      {/* HOW IT WORKS */}
+      <section className="py-20 sm:py-28 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div ref={r2} className="lp-reveal" style={{ marginBottom: 48 }}>
+            <div className="lp-section-tag">Process</div>
+            <h2 className="lp-section-title">Three steps to a trade plan</h2>
+            <p className="lp-section-sub">
+              From raw screenshots to a complete trade plan — no experience needed.
+            </p>
+          </div>
+
+          <div ref={r3} className="lp-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+            {[
+              {
+                num: '01',
+                icon: <UploadCloud size={20} color="#c8820a" />,
+                title: 'Upload Charts',
+                desc: 'Drop your higher and lower timeframe screenshots. Supports any pair, crypto, index, or commodity — from any charting platform.',
+              },
+              {
+                num: '02',
+                icon: <BrainCircuit size={20} color="#c8820a" />,
+                title: 'AI Reads Structure',
+                desc: 'The model identifies order blocks, fair value gaps, liquidity sweeps, BOS/CHoCH breaks, and key demand and supply zones.',
+              },
+              {
+                num: '03',
+                icon: <Crosshair size={20} color="#c8820a" />,
+                title: 'Execute the Plan',
+                desc: 'Receive a graded setup (A+ to F) with precise entry zone, stop loss, take profit, R:R ratio, and a confluence checklist.',
+              },
+            ].map((step, i) => (
+              <div key={i} className="lp-step-card">
+                <div className="lp-step-num">{step.num}</div>
+                <div className="lp-step-icon">{step.icon}</div>
+                <h3 className="lp-step-title">{step.title}</h3>
+                <p className="lp-step-desc">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ TRADER IMAGE + TEXT ═══ */}
-      <section className="py-16 sm:py-24 relative overflow-hidden">
-        <div ref={r4} className="reveal max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-center">
-            <div className="showcase-img order-2 md:order-1"><img src="/images/trader-ai.png" alt="Professional trader using AI analysis" loading="lazy"/></div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4" style={{background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.15)',color:'#22c55e'}}>Built for Traders</div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">Institutional Analysis,<br/>At Your Fingertips</h2>
-              <p className="text-sm sm:text-base leading-relaxed mb-6" style={{color:'var(--muted)'}}>Whether you're a beginner learning Smart Money Concepts or a seasoned trader looking to speed up your workflow — ChartAI gives you a professional-grade edge in seconds.</p>
-              <ul className="space-y-3">
-                {['Identifies Order Blocks & FVGs automatically','Multi-timeframe trend alignment','Graded setups with exact entry & exit levels','Works with any charting platform'].map((t,i)=>(
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center mt-0.5" style={{background:'rgba(34,197,94,0.15)'}}><Check size={12} style={{color:'#22c55e'}}/></div>
-                    <span>{t}</span>
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
+
+      {/* WHY TRADERS USE IT */}
+      <section className="py-20 sm:py-28 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 48, alignItems: 'start' }}>
+            <div ref={r4} className="lp-reveal">
+              <div className="lp-section-tag">Why ChartAI</div>
+              <h2 className="lp-section-title">Built for traders<br />who want precision</h2>
+              <p style={{ fontSize: 15, color: '#b0b0c2', lineHeight: 1.7, marginBottom: 28, maxWidth: 480 }}>
+                Whether you're learning Smart Money Concepts or a seasoned trader looking to speed up your workflow — ChartAI gives you a professional-grade edge in seconds.
+              </p>
+
+              <div className="lp-feature-list">
+                {[
+                  'Identifies <strong>Order Blocks</strong> & <strong>FVGs</strong> automatically',
+                  'Multi-timeframe trend alignment — HTF & LTF in one view',
+                  'Graded setups (A+ to F) with exact entry, SL, and TP',
+                  'Works with any charting platform — no integrations needed',
+                ].map((t, i) => (
+                  <div key={i} className="lp-feature-item">
+                    <div className="lp-feature-check">
+                      <Check size={11} color="#2a9461" />
+                    </div>
+                    <span className="lp-feature-text" dangerouslySetInnerHTML={{ __html: t }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div ref={r5} className="lp-reveal" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="lp-showcase">
+                <img src="/images/trader-ai.png" alt="Trader using ChartAI" loading="lazy" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                  { icon: <Layers size={18} color="#c8820a" />, title: 'Multi-Timeframe', desc: 'HTF bias with LTF precision. Contradictions are flagged to protect your capital.' },
+                  { icon: <BarChart2 size={18} color="#c8820a" />, title: 'Smart Money Concepts', desc: 'Detects OB, FVG, liquidity pools, BOS, CHoCH, and premium/discount zones.' },
+                  { icon: <ShieldCheck size={18} color="#c8820a" />, title: 'Risk Management', desc: 'SL buffers, target levels, and minimum R:R thresholds enforced on every setup.' },
+                  { icon: <Target size={18} color="#c8820a" />, title: 'Setup Grading', desc: 'A+ to F confluence checklist keeps you out of C and F rated noise.' },
+                ].map((f, i) => (
+                  <div key={i} className="lp-feat-card" style={{ flex: 1 }}>
+                    <div className="lp-feat-icon">{f.icon}</div>
+                    <h4 className="lp-feat-title">{f.title}</h4>
+                    <p className="lp-feat-desc">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
+
+      {/* COMMUNITY */}
+      <section className="py-20 sm:py-28 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div ref={r6} className="lp-reveal" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+            <div>
+              <div className="lp-section-tag">Community</div>
+              <h2 className="lp-section-title">Trusted by traders worldwide</h2>
+              <p style={{ fontSize: 15, color: '#b0b0c2', lineHeight: 1.7, marginBottom: 28 }}>
+                From solo retail traders to prop firm teams, ChartAI helps people make more informed decisions. Our AI removes emotional bias and delivers objective, data-driven trade plans — every time.
+              </p>
+              <button onClick={onGetStarted} className="lp-btn-primary" style={{ alignSelf: 'flex-start' }}>
+                Join Free <ArrowRight size={16} />
+              </button>
+            </div>
+            <div className="lp-showcase">
+              <img src="/images/traders-team.png" alt="Traders community" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
+
+      {/* PRICING */}
+      <section className="py-20 sm:py-28 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div ref={r7} className="lp-reveal" style={{ marginBottom: 48 }}>
+            <div className="lp-section-tag">Pricing</div>
+            <h2 className="lp-section-title">Simple, transparent pricing</h2>
+            <p className="lp-section-sub">Start free. No credit card required.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {/* Free */}
+            <div className="lp-price-card">
+              <div className="lp-price-tier">Free</div>
+              <div className="lp-price-name">Free</div>
+              <div className="lp-price-tagline">Perfect for getting started</div>
+              <div className="lp-price-amount">
+                <span className="lp-price-num free">$0</span>
+                <span className="lp-price-period">/mo</span>
+              </div>
+              <ul className="lp-price-features">
+                {[
+                  '5 analyses per day',
+                  'Basic confluence grading',
+                  'Single timeframe upload',
+                  'Community support',
+                ].map((f, i) => (
+                  <li key={i}>
+                    <Check size={14} color="#2a9461" className="lp-price-check" />
+                    {f}
                   </li>
                 ))}
               </ul>
+              <button onClick={onGetStarted} className="lp-price-btn lp-price-btn-default">Get Started</button>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <div className="section-divider max-w-4xl mx-auto"/>
-
-      {/* ═══ FEATURES ═══ */}
-      <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div ref={r5} className="reveal text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4" style={{background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.15)',color:'#22c55e'}}>Features</div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Institutional-Grade Tools</h2>
-            <p className="text-sm sm:text-base max-w-xl mx-auto" style={{color:'var(--muted)'}}>Built for traders who demand precision, not guesswork.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
-            {[
-              {icon:Layers,title:'Multi-Timeframe Confluence',desc:'Aligns HTF bias with LTF entry precision. Contradictions are flagged instantly to protect your capital.',accent:'#6c63ff'},
-              {icon:BarChart2,title:'Smart Money Concepts',desc:'Detects Order Blocks, FVGs, liquidity pools, BOS, CHoCH, and premium/discount zones automatically.',accent:'#3b82f6'},
-              {icon:ShieldCheck,title:'Built-In Risk Management',desc:'Every setup enforces SL buffers, target levels, and minimum R:R thresholds so you never overtrade.',accent:'#22c55e'},
-              {icon:Target,title:'Setup Grading (A+ to F)',desc:'A comprehensive confluence checklist grades each setup, keeping you out of C and F rated noise.',accent:'#f59e0b'},
-            ].map((f,i)=>(
-              <div key={i} className="feature-card flex gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl flex items-center justify-center" style={{background:`${f.accent}12`,border:`1px solid ${f.accent}25`}}>
-                  <f.icon size={18} style={{color:f.accent}}/>
-                </div>
-                <div>
-                  <h4 className="text-sm sm:text-base font-bold mb-1">{f.title}</h4>
-                  <p className="text-xs sm:text-sm leading-relaxed" style={{color:'var(--muted)'}}>{f.desc}</p>
-                </div>
+            {/* Pro */}
+            <div className="lp-price-card featured">
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                <div className="lp-price-tier featured">Popular</div>
+                <span className="lp-coming-badge">Coming Soon</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ TEAM IMAGE ═══ */}
-      <section className="py-12 sm:py-20 relative overflow-hidden">
-        <div ref={r6} className="reveal max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4" style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.15)',color:'#3b82f6'}}>Community</div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">Trusted by Traders Worldwide</h2>
-              <p className="text-sm sm:text-base leading-relaxed mb-6" style={{color:'var(--muted)'}}>From solo retail traders to small trading groups, ChartAI is helping people make more informed decisions. Our AI removes emotional bias and delivers objective, data-driven trade plans every time.</p>
-              <button onClick={onGetStarted} className="btn-glow text-sm">Join the Community <ArrowRight size={16}/></button>
-            </div>
-            <div className="showcase-img"><img src="/images/traders-team.png" alt="Traders collaborating with AI tools" loading="lazy"/></div>
-          </div>
-        </div>
-      </section>
-
-      <div className="section-divider max-w-4xl mx-auto"/>
-
-      {/* ═══ PRICING ═══ */}
-      <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div ref={r7} className="reveal text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4" style={{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.15)',color:'#f59e0b'}}>Pricing</div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-sm sm:text-base max-w-xl mx-auto" style={{color:'var(--muted)'}}>Start free. Upgrade when you're ready.</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {/* Free */}
-            <div className="pricing-card">
-              <h3 className="text-lg font-bold mb-1">Free</h3>
-              <p className="text-xs mb-5" style={{color:'var(--muted)'}}>Perfect for getting started</p>
-              <div className="flex items-end gap-1 mb-6"><span className="text-3xl sm:text-4xl font-extrabold">$0</span><span className="text-sm pb-1" style={{color:'var(--muted)'}}>/mo</span></div>
-              <ul className="space-y-3 mb-8">
-                {['5 analyses per day','Basic confluence grading','Single timeframe upload','Community support'].map((t,i)=>(
-                  <li key={i} className="flex items-center gap-2.5 text-xs sm:text-sm"><Check size={14} style={{color:'#22c55e'}}/><span>{t}</span></li>
+              <div className="lp-price-name">Pro</div>
+              <div className="lp-price-tagline">For serious traders</div>
+              <div className="lp-price-amount">
+                <span className="lp-price-num">$19</span>
+                <span className="lp-price-period">/mo</span>
+              </div>
+              <ul className="lp-price-features">
+                {[
+                  'Unlimited analyses',
+                  'Advanced SMC detection',
+                  'Multi-timeframe upload',
+                  'Priority AI processing',
+                  'Trade history & export',
+                  'Email support',
+                ].map((f, i) => (
+                  <li key={i}>
+                    <Check size={14} color="#c8820a" className="lp-price-check" />
+                    {f}
+                  </li>
                 ))}
               </ul>
-              <button onClick={onGetStarted} className="w-full py-3 rounded-xl text-sm font-semibold transition-all" style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:'var(--text-main)'}}>Get Started</button>
+              <button disabled className="lp-price-btn lp-price-btn-disabled">Notify Me</button>
             </div>
 
-            {/* Pro — Coming Soon */}
-            <div className="pricing-card featured">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-lg font-bold">Pro</h3>
-                <span className="coming-soon-badge px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{background:'rgba(108,99,255,0.15)',color:'#6c63ff',border:'1px solid rgba(108,99,255,0.3)'}}>Coming Soon</span>
+            {/* Enterprise */}
+            <div className="lp-price-card">
+              <div className="lp-price-tier">Enterprise</div>
+              <div className="lp-price-name">Enterprise</div>
+              <div className="lp-price-tagline">For prop firms and teams</div>
+              <div className="lp-price-amount">
+                <span className="lp-price-num">$49</span>
+                <span className="lp-price-period">/mo</span>
               </div>
-              <p className="text-xs mb-5" style={{color:'var(--muted)'}}>For serious traders</p>
-              <div className="flex items-end gap-1 mb-6"><span className="text-3xl sm:text-4xl font-extrabold">$19</span><span className="text-sm pb-1" style={{color:'var(--muted)'}}>/mo</span></div>
-              <ul className="space-y-3 mb-8">
-                {['Unlimited analyses','Advanced SMC detection','Multi-timeframe upload','Priority AI processing','Trade history & export','Email support'].map((t,i)=>(
-                  <li key={i} className="flex items-center gap-2.5 text-xs sm:text-sm"><Check size={14} style={{color:'#6c63ff'}}/><span>{t}</span></li>
+              <ul className="lp-price-features">
+                {[
+                  'Everything in Pro',
+                  'Team dashboards',
+                  'API access',
+                  'Custom AI tuning',
+                  'White-label options',
+                  'Dedicated support',
+                ].map((f, i) => (
+                  <li key={i}>
+                    <Check size={14} color="#a1a1aa" className="lp-price-check" />
+                    {f}
+                  </li>
                 ))}
               </ul>
-              <button disabled className="w-full py-3 rounded-xl text-sm font-bold transition-all opacity-60 cursor-not-allowed flex items-center justify-center gap-2" style={{background:'linear-gradient(135deg,#6c63ff,#4f46e5)',color:'#fff'}}><Clock size={14}/>Notify Me</button>
-            </div>
-
-            {/* Enterprise — Coming Soon */}
-            <div className="pricing-card sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-lg font-bold">Enterprise</h3>
-                <span className="coming-soon-badge px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{background:'rgba(245,158,11,0.15)',color:'#f59e0b',border:'1px solid rgba(245,158,11,0.3)'}}>Coming Soon</span>
-              </div>
-              <p className="text-xs mb-5" style={{color:'var(--muted)'}}>For prop firms & groups</p>
-              <div className="flex items-end gap-1 mb-6"><span className="text-3xl sm:text-4xl font-extrabold">$49</span><span className="text-sm pb-1" style={{color:'var(--muted)'}}>/mo</span></div>
-              <ul className="space-y-3 mb-8">
-                {['Everything in Pro','Team dashboards','API access','Custom AI tuning','White-label options','Dedicated support'].map((t,i)=>(
-                  <li key={i} className="flex items-center gap-2.5 text-xs sm:text-sm"><Check size={14} style={{color:'#f59e0b'}}/><span>{t}</span></li>
-                ))}
-              </ul>
-              <button disabled className="w-full py-3 rounded-xl text-sm font-bold transition-all opacity-60 cursor-not-allowed flex items-center justify-center gap-2" style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:'var(--text-main)'}}><Clock size={14}/>Notify Me</button>
+              <button disabled className="lp-price-btn lp-price-btn-disabled">Notify Me</button>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="section-divider max-w-4xl mx-auto"/>
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
 
-      {/* ═══ FAQ ═══ */}
-      <section className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Frequently Asked Questions</h2>
-            <p className="text-sm sm:text-base" style={{color:'var(--muted)'}}>Got questions? We've got answers.</p>
+      {/* FAQ */}
+      <section className="py-20 sm:py-28 relative">
+        <div className="max-w-3xl mx-auto px-5">
+          <div style={{ marginBottom: 40 }}>
+            <div className="lp-section-tag">FAQ</div>
+            <h2 className="lp-section-title">Questions? Answers.</h2>
           </div>
-          <FAQ/>
+          <FAQ />
         </div>
       </section>
 
-      <div className="section-divider max-w-4xl mx-auto"/>
+      <div className="max-w-6xl mx-auto px-5"><div className="lp-divider" /></div>
 
-      {/* ═══ CTA ═══ */}
-      <section className="cta-bg py-20 sm:py-28 lg:py-36 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none"><div className="orb" style={{width:400,height:400,background:'radial-gradient(circle,rgba(108,99,255,0.15),transparent 70%)',top:'20%',left:'50%',transform:'translateX(-50%)',filter:'blur(80px)'}}/></div>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center relative z-10">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold mb-4 sm:mb-6 leading-tight">
-            Stop guessing.<br/><span className="text-transparent bg-clip-text" style={{backgroundImage:'linear-gradient(135deg,#6c63ff,#22c55e)',WebkitBackgroundClip:'text'}}>Start executing.</span>
-          </h2>
-          <p className="text-sm sm:text-lg mb-8 sm:mb-10 max-w-lg mx-auto" style={{color:'var(--muted)'}}>Join traders building a systematic, data-driven edge in the market.</p>
-          <button onClick={onGetStarted} className="btn-glow text-sm sm:text-base">Start Analyzing Charts <ChevronRight size={20}/></button>
+      {/* CTA */}
+      <section className="lp-cta">
+        <div className="max-w-6xl mx-auto px-5">
+          <div style={{ maxWidth: 580 }}>
+            <h2 className="lp-cta-title">
+              Stop guessing.<br />
+              <span style={{ color: '#c8820a' }}>Start executing.</span>
+            </h2>
+            <p className="lp-cta-sub">
+              Join traders building a systematic, data-driven edge in the market. Free to start — no credit card needed.
+            </p>
+            <div className="lp-cta-actions">
+              <button onClick={onGetStarted} className="lp-btn-primary">
+                Start for Free <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-6 sm:py-8 text-center text-[11px] sm:text-xs" style={{borderTop:'1px solid rgba(255,255,255,0.04)',color:'var(--muted)'}}>
-        <p>© {new Date().getFullYear()} ChartAI — All rights reserved.</p>
+      <footer className="lp-footer">
+        <div className="max-w-6xl mx-auto px-5" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div className="lp-nav-logo" style={{ marginBottom: 0 }}>
+            <img src="/favicon.svg" alt="ChartAI" className="lp-nav-logo-mark" />
+            <span className="font-bold text-sm tracking-tight" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Chart<span style={{ color: '#c8820a' }}>AI</span>
+            </span>
+          </div>
+          <p className="lp-footer-text">© {new Date().getFullYear()} ChartAI — Not financial advice. All rights reserved.</p>
+        </div>
       </footer>
+
     </div>
   );
 }

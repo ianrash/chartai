@@ -15,7 +15,9 @@ export default {
         muted: "var(--muted)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Outfit", "system-ui", "sans-serif"],
+        display: ["Syne", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease-out",

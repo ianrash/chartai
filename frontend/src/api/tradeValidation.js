@@ -23,7 +23,7 @@ export const RATING_RR_MINIMUMS = {
   'A+': 3,
   'A': 2.5,
   'B': 2,
-  'C': 2,
+  'C': 1.5,
   'F': 999,
 };
 

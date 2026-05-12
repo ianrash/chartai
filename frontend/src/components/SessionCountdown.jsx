@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getUgandaHour } from "../utils/timezone";
 
 const SESSIONS = [
   { name: "Asian", start: 2, end: 10, fullName: "Asian" },
@@ -19,10 +20,8 @@ export default function SessionCountdown() {
 
   useEffect(() => {
     const update = () => {
-      const nowMs = Date.now();
-      const ugandaOffset = 3 * 60 * 60 * 1000;
-      const ugandaMs = nowMs + ugandaOffset;
-      const ugandaHour = new Date(ugandaMs).getUTCHours();
+      const now = new Date();
+      const ugandaHour = getUgandaHour(now);
 
       const states = SESSIONS.map((session) => {
         const { start, end, name, fullName } = session;
@@ -30,17 +29,21 @@ export default function SessionCountdown() {
         if (end < start) adjustedEnd = end + 24;
 
         if (ugandaHour >= start && ugandaHour < adjustedEnd) {
-          const sessionEnd = new Date(nowMs);
-          sessionEnd.setUTCHours(adjustedEnd - 3, 0, 0, 0);
-          if (sessionEnd.getTime() <= nowMs) sessionEnd.setUTCDate(sessionEnd.getUTCDate() + 1);
-          const remaining = sessionEnd.getTime() - nowMs;
+          const sessionEnd = new Date(now);
+          sessionEnd.setHours(adjustedEnd, 0, 0, 0);
+          if (sessionEnd.getTime() <= now.getTime()) {
+            sessionEnd.setDate(sessionEnd.getDate() + 1);
+          }
+          const remaining = sessionEnd.getTime() - now.getTime();
           return { state: "ACTIVE", name, fullName: fullName + " Open", time: formatTime(remaining) };
         }
 
-        const sessionStart = new Date(nowMs);
-        sessionStart.setUTCHours(start - 3, 0, 0, 0);
-        if (sessionStart.getTime() <= nowMs) sessionStart.setUTCDate(sessionStart.getUTCDate() + 1);
-        const remaining = sessionStart.getTime() - nowMs;
+        const sessionStart = new Date(now);
+        sessionStart.setHours(start, 0, 0, 0);
+        if (sessionStart.getTime() <= now.getTime()) {
+          sessionStart.setDate(sessionStart.getDate() + 1);
+        }
+        const remaining = sessionStart.getTime() - now.getTime();
         
         const isUpcoming = remaining < 24 * 60 * 60 * 1000;
         return { state: isUpcoming ? "UPCING" : "CLOSED", name, fullName, time: formatTime(remaining) };

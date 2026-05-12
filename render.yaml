@@ -1,22 +1,7 @@
 services:
   - type: web
-    name: chartai-backend
-    env: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: OPENROUTER_API_KEY
-        value: ""  # Set in Render dashboard environment variables
-      - key: ALLOWED_ORIGINS
-        value: "https://chartai-frontend.onrender.com"
-
-  - type: web
     name: chartai-frontend
     env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     startCommand: npm run preview -- --port $PORT --host 0.0.0.0
-    envVars:
-      - key: VITE_API_URL
-        value: "https://chartai-backend.onrender.com"

@@ -8,6 +8,8 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const validatePassword = (pass) => {
     if (pass.length < 6) {
@@ -83,6 +85,31 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
     }
   };
 
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    setResetSent(false);
+
+    try {
+      if (!isSupabaseInitialized()) {
+        throw new Error('Supabase is not initialized. Please check environment variables.');
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+
+      if (error) throw error;
+
+      setResetSent(true);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="w-full max-w-md relative">
@@ -101,7 +128,7 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
             </div>
             <h1 className="text-2xl font-bold" style={{ color: 'var(--text-main)' }}>ChartAI</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-              {isSignUp ? 'Create your account' : 'Sign in to continue'}
+              {showResetForm ? 'Reset your password' : isSignUp ? 'Create your account' : 'Sign in to continue'}
             </p>
           </div>
 
@@ -111,6 +138,47 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
             </div>
           )}
 
+          {resetSent && (
+            <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.3)', color: '#22c55e' }}>
+              Password reset link sent! Check your email.
+            </div>
+          )}
+
+          {showResetForm ? (
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              <div>
+                <label className="label block mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
+                  style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-main)' }}
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full py-3"
+              >
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </button>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setShowResetForm(false); setError(''); setResetSent(false); }}
+                  className="text-sm hover:underline transition-all"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
             <div>
               <label className="label block mb-1.5">Email</label>
@@ -138,6 +206,17 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
               />
             </div>
 
+            <div className="flex justify-end -mt-2">
+              <button
+                type="button"
+                onClick={() => { setShowResetForm(true); setError(''); }}
+                className="text-xs hover:underline transition-all"
+                style={{ color: 'var(--muted)' }}
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -146,6 +225,7 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
               {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </button>
           </form>
+          )}
 
           <div className="mt-6 text-center">
             <button

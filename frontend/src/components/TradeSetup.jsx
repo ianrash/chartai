@@ -25,42 +25,52 @@ export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist,
   const rating = propRating ?? getProbabilityRating(calculateConfluenceScore(confluenceChecklist));
   
   const ratingColors = {
-    "A+": { bg: "bg-green-500/20", border: "border-green-500/40", text: "text-green-400" },
-    "A": { bg: "bg-blue-500/20", border: "border-blue-500/40", text: "text-blue-400" },
-    "B": { bg: "bg-yellow-500/20", border: "border-yellow-500/40", text: "text-yellow-400" },
-    "C": { bg: "bg-orange-500/20", border: "border-orange-500/40", text: "text-orange-400" },
-    "F": { bg: "bg-red-500/20", border: "border-red-500/40", text: "text-red-400" },
+    "A+": { bg: "var(--bullish-glow)", border: "rgba(16, 185, 129, 0.4)", text: "var(--bullish)" },
+    "A": { bg: "rgba(59, 130, 246, 0.2)", border: "rgba(59, 130, 246, 0.4)", text: "#3b82f6" },
+    "B": { bg: "rgba(251, 191, 36, 0.15)", border: "rgba(251, 191, 36, 0.4)", text: "var(--neutral)" },
+    "C": { bg: "rgba(249, 115, 22, 0.15)", border: "rgba(249, 115, 22, 0.4)", text: "#f97316" },
+    "F": { bg: "var(--bearish-glow)", border: "rgba(244, 63, 94, 0.4)", text: "var(--bearish)" },
   };
   const r = ratingColors[rating] || ratingColors.F;
 
+  const biasStyle = isWait 
+    ? { bg: 'rgba(251, 191, 36, 0.1)', color: 'var(--neutral)', border: 'rgba(251, 191, 36, 0.3)' }
+    : isBuy 
+      ? { bg: 'var(--bullish-glow)', color: 'var(--bullish)', border: 'rgba(16, 185, 129, 0.3)' }
+      : { bg: 'var(--bearish-glow)', color: 'var(--bearish)', border: 'rgba(244, 63, 94, 0.3)' };
+
   return (
-    <div className={`card overflow-hidden border-2 animate-fade-in ${isWait ? 'border-neutral/30' : isBuy ? 'border-bullish/30' : 'border-bearish/30'}`}>
-      <div className={`px-3 sm:px-5 py-3 flex flex-wrap gap-2 sm:gap-3 ${isWait ? 'bg-neutral/10' : isBuy ? 'bg-bullish/10' : 'bg-bearish/10'}`}>
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          {isBuy ? <TrendingUp size={14} sm:size={18} className="text-bullish flex-shrink-0" /> : isWait ? <Clock size={14} sm:size={18} className="text-neutral flex-shrink-0" /> : <TrendingDown size={14} sm:size={18} className="text-bearish flex-shrink-0" />}
-          <h3 className="font-bold text-main text-sm sm:text-base whitespace-nowrap">{trade.label || 'Trade Setup'}</h3>
+    <div className="card overflow-hidden border-2 animate-fade-in-up" style={{ borderColor: isWait ? 'rgba(251, 191, 36, 0.3)' : isBuy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)' }}>
+      <div className="px-4 sm:px-6 py-4 flex flex-wrap gap-3 sm:gap-4 items-center" style={{ background: isWait ? 'rgba(251, 191, 36, 0.08)' : isBuy ? 'var(--bullish-glow)' : 'var(--bearish-glow)' }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isWait ? '' : ''}`} style={isWait ? { background: 'rgba(251, 191, 36, 0.15)', color: 'var(--neutral)' } : isBuy ? { background: 'var(--bullish)', color: '#fff' } : { background: 'var(--bearish)', color: '#fff' }}>
+            {isBuy ? <TrendingUp size={18} /> : isWait ? <Clock size={18} /> : <TrendingDown size={18} />}
+          </div>
+          <h3 className="font-display font-bold text-main text-base whitespace-nowrap">{trade.label || 'Trade Setup'}</h3>
         </div>
         
-        <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-xs font-bold border ${r.bg} ${r.border} ${r.text} flex-shrink-0 order-3 sm:order-2`}>
+        <span className="px-3 py-1.5 rounded-lg text-xs font-bold font-display border flex-shrink-0 order-3 sm:order-2" style={{ background: r.bg, borderColor: r.border, color: r.text }}>
           {rating}
         </span>
         
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 w-full sm:w-auto order-4 sm:order-3">
-          <span className={`badge text-[9px] sm:text-xs ${isWait ? 'bg-neutral/20 text-neutral' : isBuy ? 'bg-bullish/20 text-bullish' : 'bg-bearish/20 text-bearish'}`}>
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto order-4 sm:order-3">
+          <span className="px-3 py-1.5 rounded-lg text-xs font-bold font-display" style={{ background: biasStyle.bg, color: biasStyle.color, border: `1px solid ${biasStyle.border}` }}>
             {trade.bias} {trade.status && `• ${trade.status}`}
           </span>
           {onCopy && (
             <button 
               onClick={() => onCopy(trade)}
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-main text-xs font-bold transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'var(--surface)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
             >
-              <Copy size={12} sm:size={14} />
+              <Copy size={14} />
               <span className="hidden sm:inline">Copy</span>
             </button>
           )}
           <button 
             onClick={() => onSave(trade)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-accent/20 hover:bg-accent/40 text-accent text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold font-display transition-all hover:scale-105 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))', color: '#fff' }}
           >
             <Save size={14} />
             Save Setup
@@ -68,83 +78,91 @@ export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist,
         </div>
       </div>
 
-      <div className="p-3 flex flex-col gap-5">
+      <div className="p-4 sm:p-6 flex flex-col gap-5">
         {execution?.order_type?.toUpperCase() === "LIMIT" ? (
-          <div className="p-3 rounded-xl bg-neutral/10 border border-neutral/30 flex items-start gap-3">
-            <AlertTriangle size={18} className="text-neutral flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-neutral font-medium leading-relaxed">
-              <span className="font-bold">Do not enter market.</span> Place your limit order at the entry zone and wait for price to come to you. Market entering this setup will result in poor entry price and premature stop loss hit.
-            </p>
+          <div className="p-4 rounded-xl border flex items-start gap-3" style={{ background: 'rgba(251, 191, 36, 0.08)', borderColor: 'rgba(251, 191, 36, 0.3)' }}>
+            <AlertTriangle size={20} style={{ color: 'var(--neutral)' }} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-display font-bold" style={{ color: 'var(--neutral)' }}>Do not enter market.</p>
+              <p className="text-xs text-secondary mt-1 leading-relaxed">Place your limit order at the entry zone and wait for price to come to you. Market entering this setup will result in poor entry price and premature stop loss hit.</p>
+            </div>
           </div>
         ) : execution?.order_type?.toUpperCase() === "MARKET" ? (
-          <div className="p-3 rounded-xl bg-accent/10 border border-accent/30 flex items-start gap-3">
-            <Zap size={18} className="text-accent flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-accent font-medium leading-relaxed">
-              <span className="font-bold">Enter on confirmation candle close only.</span> Do not enter mid-candle or before close.
-            </p>
+          <div className="p-4 rounded-xl border flex items-start gap-3" style={{ background: 'var(--accent-glow)', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+            <Zap size={20} className="text-accent flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-display font-bold text-accent">Enter on confirmation candle close only.</p>
+              <p className="text-xs text-secondary mt-1 leading-relaxed">Do not enter mid-candle or before close.</p>
+            </div>
           </div>
         ) : null}
 
-        <div className="bg-surface-2 p-2 sm:p-3 rounded-xl border border-white/5">
-          <p className="label text-[10px] sm:text-xs mb-1">Entry Trigger Required</p>
-          <p className="text-xs sm:text-sm text-main font-bold italic">"{DOMPurify.sanitize(execution?.trigger_condition || 'Confirmation required')}"</p>
+        <div className="p-4 rounded-xl border" style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
+          <p className="label font-display text-[10px] sm:text-xs mb-2">Entry Trigger Required</p>
+          <p className="text-sm font-display text-main font-semibold italic">"{DOMPurify.sanitize(execution?.trigger_condition || 'Confirmation required')}"</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          <div>
-            <p className="label text-[10px] sm:text-xs">Entry Zone</p>
-            <p className="value text-xs sm:text-base truncate">{execution?.entry_zone || execution?.entry || "—"}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+            <p className="label font-display text-[10px] sm:text-xs mb-1">Entry Zone</p>
+            <p className="value text-sm font-semibold text-main truncate">{execution?.entry_zone || execution?.entry || "—"}</p>
           </div>
-          <div>
-            <p className="label text-[10px] sm:text-xs">Stop Loss</p>
-            <p className="value text-xs sm:text-base text-bearish truncate">{execution?.stop || "—"}</p>
+          <div className="p-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+            <p className="label font-display text-[10px] sm:text-xs mb-1">Stop Loss</p>
+            <p className="value text-sm font-semibold truncate" style={{ color: 'var(--bearish)' }}>{execution?.stop || "—"}</p>
           </div>
-          <div>
-            <p className="label text-[10px] sm:text-xs">Target</p>
-            <p className="value text-xs sm:text-base text-bullish truncate">{execution?.target || "—"}</p>
+          <div className="p-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+            <p className="label font-display text-[10px] sm:text-xs mb-1">Target</p>
+            <p className="value text-sm font-semibold truncate" style={{ color: 'var(--bullish)' }}>{execution?.target || "—"}</p>
           </div>
-          <div>
-            <p className="label text-[10px] sm:text-xs">R:R Ratio</p>
-            <p className={`value text-xs sm:text-base ${execution?.r_multiple < 2 ? 'text-neutral' : 'text-accent'} truncate`}>
+          <div className="p-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+            <p className="label font-display text-[10px] sm:text-xs mb-1">R:R Ratio</p>
+            <p className={`value text-sm font-semibold truncate ${(() => {
+              const rMultiple = execution?.r_multiple || (execution?.risk_reward ? parseFloat(execution.risk_reward.split(':')[1]) : null);
+              return (rMultiple !== null && rMultiple < 2) ? '' : '';
+            })()}`} style={{ color: (() => {
+              const rMultiple = execution?.r_multiple || (execution?.risk_reward ? parseFloat(execution.risk_reward.split(':')[1]) : null);
+              return (rMultiple !== null && rMultiple < 2) ? 'var(--neutral)' : 'var(--accent)';
+            })() }}>
               {execution?.risk_reward || (execution?.r_multiple ? `1:${execution.r_multiple}` : "—")}
             </p>
           </div>
         </div>
 
         {trade.alternative_scenario && (
-          <div className="bg-surface-2 p-3 sm:p-4 rounded-xl border border-dashed border-muted/30">
-            <div className="flex items-center gap-2 mb-2 text-muted">
-              <ShieldAlert size={12} sm:size={14} />
-              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Alternative Scenario / Plan B</p>
+          <div className="p-4 rounded-xl border border-dashed" style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-3 text-muted">
+              <ShieldAlert size={14} />
+              <p className="text-xs font-display font-bold uppercase tracking-wider">Alternative Scenario / Plan B</p>
             </div>
-            <p className="text-xs sm:text-sm text-main leading-relaxed">{DOMPurify.sanitize(trade.alternative_scenario)}</p>
+            <p className="text-sm text-secondary leading-relaxed">{DOMPurify.sanitize(trade.alternative_scenario)}</p>
           </div>
         )}
 
         {execution?.rr_warning && (
-          <div className="flex flex-col gap-2 p-2 sm:p-3 rounded-xl bg-neutral/5 border border-neutral/20">
-            <div className="flex items-center gap-2 text-neutral">
-              <AlertTriangle size={12} sm:size={16} />
-              <span className="text-xs sm:text-sm font-bold">R:R Enforcement Notice</span>
+          <div className="flex flex-col gap-3 p-4 rounded-xl border" style={{ background: 'rgba(251, 191, 36, 0.05)', borderColor: 'rgba(251, 191, 36, 0.2)' }}>
+            <div className="flex items-center gap-2" style={{ color: 'var(--neutral)' }}>
+              <AlertTriangle size={16} />
+              <span className="text-sm font-display font-bold">R:R Enforcement Notice</span>
             </div>
-            <p className="text-[10px] sm:text-xs text-muted leading-relaxed">{DOMPurify.sanitize(execution.rr_warning)}</p>
+            <p className="text-xs text-muted leading-relaxed">{DOMPurify.sanitize(execution.rr_warning)}</p>
             {execution.extended_target && (
               <div className="flex items-center gap-2 mt-1">
-                <Target size={10} sm:size={14} className="text-bullish" />
-                <span className="text-[10px] sm:text-xs font-semibold text-main">Suggested Extended Target: <span className="text-bullish font-bold">{execution.extended_target}</span></span>
+                <Target size={14} style={{ color: 'var(--bullish)' }} />
+                <span className="text-xs font-semibold text-secondary">Suggested Extended Target: <span className="font-bold" style={{ color: 'var(--bullish)' }}>{execution.extended_target}</span></span>
               </div>
             )}
           </div>
         )}
 
-        <div className="pt-4 border-t border-white/5 flex flex-col md:flex-row gap-2 sm:gap-4 justify-between">
+        <div className="pt-5 border-t flex flex-col md:flex-row gap-4 justify-between" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <p className="label flex items-center gap-1"><ShieldAlert size={10} sm:size={12} /> Invalidation</p>
-            <p className="text-[10px] sm:text-xs text-muted mt-1">{DOMPurify.sanitize(trade.invalidation_level || "Close below structure")}</p>
+            <p className="label flex items-center gap-1.5 font-display"><ShieldAlert size={12} /> Invalidation</p>
+            <p className="text-xs text-muted mt-1.5">{DOMPurify.sanitize(trade.invalidation_level || "Close below structure")}</p>
           </div>
           <div className="text-right">
-            <p className="label">Order Type</p>
-            <p className="text-xs sm:text-sm font-bold text-main">{execution?.order_type || "Market"}</p>
+            <p className="label font-display">Order Type</p>
+            <p className="text-sm font-bold text-main mt-0.5">{execution?.order_type || "Market"}</p>
           </div>
         </div>
       </div>

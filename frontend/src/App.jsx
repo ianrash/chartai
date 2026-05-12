@@ -44,6 +44,7 @@ import ChartZoomModal from "./components/ChartZoomModal";
 import ConfluenceChecklist from "./components/ConfluenceChecklist";
 import HistorySidebar from "./components/HistorySidebar";
 import { ToastContainer } from "./components/Toast";
+import PwaInstallPrompt from "./components/PwaInstallPrompt";
 
 
 import { analyzeChart } from "./api/analyzeChart";
@@ -59,7 +60,6 @@ import {
   Zap,
   Activity,
   Cpu,
-  ChartCandlestick,
   RefreshCw,
   Moon,
   Sun,
@@ -461,9 +461,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
       <header className="border-b border-white/5 bg-surface/60 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
-              <ChartCandlestick size={16} className="text-white" />
-            </div>
+            <img src="/favicon.svg" alt="ChartAI" style={{ width: 32, height: 32, borderRadius: 6 }} />
             <span className="text-main font-bold text-lg tracking-tight">
               ChartAI
             </span>
@@ -1013,6 +1011,9 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      {/* PWA Install Prompt */}
+      <PwaInstallPrompt />
 
       {/* Share Menu Backdrop */}
       {showShareMenu && (
