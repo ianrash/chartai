@@ -1,5 +1,7 @@
 function getBackendUrl() {
-  return import.meta.env.VITE_BACKEND_URL || 'https://chartai-wy7a.onrender.com';
+  const url = import.meta.env.VITE_BACKEND_URL || 'https://chartai-wy7a.onrender.com';
+  console.log('[BackendAdapter] Using backend URL:', url);
+  return url;
 }
 
 async function wakeUpBackend() {
@@ -38,11 +40,16 @@ export async function analyzeImages(charts, symbol = "Unknown", sessionDate = "U
   const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   try {
+    console.log('[BackendAdapter] Sending request to:', `${getBackendUrl()}/api/analyze`);
     const response = await fetch(`${getBackendUrl()}/api/analyze`, {
       method: 'POST',
       body: formData,
-      signal: controller.signal
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
     });
+    console.log('[BackendAdapter] Response status:', response.status);
 
     clearTimeout(timeoutId);
 
@@ -66,7 +73,9 @@ export async function analyzeImages(charts, symbol = "Unknown", sessionDate = "U
     return data;
 
   } catch (error) {
-    console.error('Analysis Error:', error.message || String(error));
+    console.error('[BackendAdapter] Analysis Error:', error.message || String(error));
+    console.error('[BackendAdapter] Error name:', error.name);
+    console.error('[BackendAdapter] Error cause:', error.cause);
     
     if (error.name === 'AbortError') {
       return {
