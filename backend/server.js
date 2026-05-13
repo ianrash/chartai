@@ -416,42 +416,79 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
 function extractJson(text) {
   const hasBase64 = text.includes('base64');
 
+  console.log("Raw AI response:", text.slice(0, 500));
+
   text = text
     .replace(/```json/g, '')
+    .replace(/```javascript/g, '')
     .replace(/```/g, '')
     .trim();
 
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
+  let start = text.indexOf('{');
+  let end = text.lastIndexOf('}');
+
+  if (start === -1 || end === -1 || end <= start) {
+    start = text.indexOf('[');
+    end = text.lastIndexOf(']');
+  }
+
   if (start !== -1 && end !== -1 && end > start) {
     text = text.slice(start, end + 1);
   } else {
-    text = text.trim();
+    return {
+      error: 'parse_error',
+      raw_response: text.slice(0, 500),
+      message: 'No valid JSON found in response'
+    };
   }
 
   try {
     return JSON.parse(text);
   } catch {
-    let fixed = text
-      .replace(/,\s*}/g, '}')
-      .replace(/,\s*]/g, ']');
+    console.log("Direct parse failed, attempting fixes");
+  }
 
-    if (!hasBase64) {
-      fixed = fixed
-        .replace(/(?<!")(\w+):(?!")/g, '"$1":')
-        .replace(/<[^>]+>/g, 'null');
-    }
+  let fixed = text
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
 
-    try {
-      return JSON.parse(fixed);
-    } catch {
+  if (!hasBase64) {
+    fixed = fixed
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+      .replace(/<[^>]+>/g, 'null')
+      .replace(/'([^']*)'/g, '"$1"')
+      .replace(/,\s*([}\]])/g, '$1');
+  }
+
+  try {
+    return JSON.parse(fixed);
+  } catch {
+    console.log("Fixed parse also failed");
+  }
+
+  try {
+    const instrumentMatch = text.match(/"instrument_detected"\s*:\s*"([^"]+)"/);
+    const htfBiasMatch = text.match(/"htf_bias"\s*:\s*"([^"]+)"/);
+    const mtfBiasMatch = text.match(/"mtf_bias"\s*:\s*"([^"]+)"/);
+    const ratingMatch = text.match(/"probability_rating"\s*:\s*"([^"]+)"/);
+    
+    if (instrumentMatch || htfBiasMatch) {
       return {
-        error: 'parse_error',
-        raw_response: text.slice(0, 500),
-        message: 'Analysis formatting error'
+        warning: "Partial parse - some fields may be missing",
+        instrument_detected: instrumentMatch ? instrumentMatch[1] : "Unknown",
+        htf_bias: htfBiasMatch ? htfBiasMatch[1] : "Unknown",
+        mtf_bias: mtfBiasMatch ? mtfBiasMatch[1] : "Unknown",
+        probability_rating: ratingMatch ? ratingMatch[1] : "Unknown",
+        _raw: text.slice(0, 1000)
       };
     }
-  }
+  } catch {}
+
+  return {
+    error: 'parse_error',
+    raw_response: text.slice(0, 500),
+    message: 'Analysis formatting error - Raw response: ' + text.slice(0, 300)
+  };
 }
 
 app.use((req, res) => {
