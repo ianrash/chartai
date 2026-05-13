@@ -1,4 +1,4 @@
-import { analyzeImages } from "./gemini";
+import { analyzeImages } from "./backendAdapter";
 
 export async function analyzeChart(charts, symbol, sessionDate) {
   if (!charts || charts.length < 2) {
