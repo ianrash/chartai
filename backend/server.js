@@ -297,10 +297,13 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       { type: "text", text: `${SYSTEM_PROMPT}\n\n${contextStr}Analyze these trading charts and return only valid JSON.` }
     ];
 
+    console.log(`Processing ${req.files.length} files`);
     for (const file of req.files) {
+      console.log(`File: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`);
       const imageBuffer = fs.readFileSync(file.path);
       const base64 = imageBuffer.toString('base64');
       const mimeType = file.mimetype || 'image/png';
+      console.log(`Base64 length: ${base64.length}`);
       
       content.push({
         type: "image_url",
@@ -311,7 +314,7 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
     }
 
     const requestBody = {
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash",
       messages: [{ role: "user", content }],
       temperature: 0.0,
       max_tokens: 8192,
