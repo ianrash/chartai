@@ -1,18 +1,16 @@
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      const base64 = result.split(',')[1] || result;
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 function getBackendUrl() {
   return import.meta.env.VITE_BACKEND_URL || 'https://chartai-wy7a.onrender.com';
+}
+
+async function wakeUpBackend() {
+  try {
+    await fetch(`${getBackendUrl()}/api/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+  } catch (e) {
+    // Ignore - just trying to wake up the service
+  }
 }
 
 export async function analyzeImages(charts, symbol = "Unknown", sessionDate = "Unknown") {
@@ -23,6 +21,9 @@ export async function analyzeImages(charts, symbol = "Unknown", sessionDate = "U
   if (charts.length > 3) {
     throw new Error("Maximum 3 charts allowed.");
   }
+
+  // Wake up backend if sleeping (Render free tier)
+  await wakeUpBackend();
 
   const formData = new FormData();
   
@@ -88,7 +89,7 @@ export async function analyzeImages(charts, symbol = "Unknown", sessionDate = "U
     if (errorStr.includes('fetch failed') || errorStr.includes('NetworkError')) {
       return {
         error: 'network_error',
-        message: 'Unable to connect to analysis server. Please check your connection.',
+        message: 'Unable to connect to analysis server. Backend may be starting up - please try again.',
         original_error: errorStr
       };
     }
