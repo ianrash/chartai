@@ -8,6 +8,7 @@ __pycache__/
 .env
 .env.local
 .env.production.local
+!.env.production
 
 # Build outputs
 dist/
