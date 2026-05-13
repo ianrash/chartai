@@ -314,7 +314,7 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
     }
 
     const requestBody = {
-      model: "google/gemini-2.0-flash",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content }],
       temperature: 0.0,
       max_tokens: 8192,
