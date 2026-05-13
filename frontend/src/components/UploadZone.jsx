@@ -47,7 +47,9 @@ export default function UploadZone({ charts, onChartsChange, onChartClick }) {
     (e) => {
       e.preventDefault();
       setIsDragging(false);
-      handleFile(e.dataTransfer.files[0]);
+      // Process all dropped files, not just the first one
+      const files = Array.from(e.dataTransfer.files);
+      files.forEach(file => handleFile(file));
     },
     [handleFile]
   );

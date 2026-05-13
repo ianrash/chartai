@@ -76,15 +76,29 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-const SYSTEM_PROMPT = `You are an expert price action trading analyst. Analyze the trading chart images and return ONLY valid JSON with no markdown, no backticks, no extra text before or after the JSON object.
+const SYSTEM_PROMPT = `You are an expert price action trading analyst. Your job is to analyze ALL uploaded trading chart images and return ONLY valid JSON with no markdown, no backticks, no extra text before or after the JSON object.
 
-CRITICAL INSTRUCTIONS:
-1. Detect instrument from chart (XAUUSD, BTCUSD, etc.)
-2. Detect the TIME from chart timestamp - determine session:
+CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXPLICITLY:
+
+1. **ANALYZE ALL CHARTS**: You MUST analyze ALL uploaded chart images. Do NOT focus on just one chart. Each uploaded chart must be examined and included in your analysis. If only 2 charts are provided, combine the MTF and M1 analysis appropriately.
+
+2. **CHART MAPPING**: The first uploaded image = first chart, second uploaded image = second chart, third uploaded image = third chart (if any). You must identify the timeframe of each chart and map it to the appropriate analysis section:
+   - If 3 charts: Highest timeframe → htf_analysis, Middle timeframe → mtf_analysis, Lowest timeframe → m1_analysis
+   - If 2 charts: Higher timeframe → htf_analysis, Lower timeframe → mtf_analysis (combine m1 into mtf)
+
+3. **CROSS-CHARTS CORRELATION**: You MUST correlate findings between charts. Look for:
+   - Alignment of Order Blocks across timeframes
+   - FVG fill probability relative to other timeframe OB zones
+   - Liquidity sweeps confirmation between charts
+   - Trend alignment/conflict between timeframes
+   - Verify that lower timeframe OB zones align with higher timeframe structures
+
+4. Detect instrument from chart (XAUUSD, BTCUSD, etc.)
+5. Detect the TIME from chart timestamp - determine session:
    - London: 8am-4pm GMT (red/orange candles)
-   - New York: 1pm-9pm GMT (blue/green candles)  
+   - New York: 1pm-9pm GMT (blue/green candles)
    - Asian: 11pm-7am GMT (dim/small candles)
-3. Look at candle colors and volatility to identify session
+6. Look at candle colors and volatility to identify session
 
 CRITICAL: ANTI-HALLUCINATION RULES:
 - VISUAL PROOF: For EVERY zone (OB, FVG, Liquidity), you MUST cite the exact price visible on the chart's Y-axis.
@@ -297,18 +311,20 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       { type: "text", text: `${SYSTEM_PROMPT}\n\n${contextStr}Analyze these trading charts and return only valid JSON.` }
     ];
 
-    console.log(`Processing ${req.files.length} files`);
+    console.log(`Processing ${req.files.length} files for symbol: ${symbol}`);
     for (const file of req.files) {
       console.log(`File: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`);
       const imageBuffer = fs.readFileSync(file.path);
       const base64 = imageBuffer.toString('base64');
       const mimeType = file.mimetype || 'image/png';
-      console.log(`Base64 length: ${base64.length}`);
+      console.log(`Base64 length: ${base64.length}, expected format: image type with base64`);
       
       content.push({
-        type: "image_url",
-        image_url: {
-          url: `data:${mimeType};base64,${base64}`
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mimeType,
+          data: base64
         }
       });
     }
@@ -317,7 +333,7 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content }],
       temperature: 0.0,
-      max_tokens: 8192,
+      max_tokens: 2000,
       response_format: { type: "json_object" }
     };
 
@@ -355,11 +371,18 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
     }
 
     const text = data.choices[0].message?.content || '';
+    console.log(`AI response received, length: ${text.length} chars`);
     if (!text) {
       throw new Error('Empty response from API');
     }
 
     const result = extractJson(text);
+
+    // Check if parsing failed - throw error to trigger proper HTTP error response
+    if (result.error) {
+      throw new Error(`Parse error: ${result.message}`);
+    }
+
     res.json(result);
 
   } catch (error) {
