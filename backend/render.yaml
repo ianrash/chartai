@@ -11,6 +11,6 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: REFERRER_URL
-        value: https://chartanalystai.netlify.app
+        value: https://chartaanalyst.netlify.app
     autoDeploy: true
     plan: free
