@@ -333,12 +333,12 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content }],
       temperature: 0.0,
-      max_tokens: 2000,
+      max_tokens: 4096,
       response_format: { type: "json_object" }
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
