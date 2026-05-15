@@ -320,11 +320,9 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       console.log(`Base64 length: ${base64.length}, expected format: image type with base64`);
       
       content.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: mimeType,
-          data: base64
+        type: "image_url",
+        image_url: {
+          url: `data:${mimeType};base64,${base64}`
         }
       });
     }
