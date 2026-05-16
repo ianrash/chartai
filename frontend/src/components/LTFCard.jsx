@@ -5,31 +5,32 @@ const BULLISH_COLOR = "#22c55e";
 const BEARISH_COLOR = "#ef4444";
 const NEUTRAL_COLOR = "#facc15";
 
+const safe = (val, fallback = "—") =>
+  val && val !== "undefined" && val !== "null" ? DOMPurify.sanitize(String(val)) : fallback;
+
 export default function LTFCard({ data, htfDirection }) {
-  if (!data) {
+  if (!data || data.status === "not_applicable") {
     return (
       <div className="card border-l-4 border-[#a855f7]">
         <div className="flex items-center gap-2 mb-2">
           <ShieldAlert size={14} className="text-[#a855f7]" />
           <span className="label text-[10px] sm:text-xs">Ltf Confirmation</span>
         </div>
-        <p className="text-muted text-xs sm:text-sm">No Ltf data available</p>
+        <p className="text-muted text-xs sm:text-sm">
+          {data?.reason || "No LTF data available"}
+        </p>
       </div>
     );
   }
 
-  // Determine confirmation color based on HTF direction
   const isConfirming = data.trend?.confirmation === "Confirms HTF";
-  const htfIsBearish = htfDirection === "Bearish" || (typeof htfDirection === 'string' && htfDirection.toLowerCase().includes("bearish"));
-  const htfIsBullish = htfDirection === "Bullish" || (typeof htfDirection === 'string' && htfDirection.toLowerCase().includes("bullish"));
-  
-  // If HTF is bearish and Ltf confirms = show red
-  // If HTF is bullish and Ltf confirms = show green
-  // If contradicting = show warning
+  const htfIsBearish = htfDirection === "Bearish" || (typeof htfDirection === "string" && htfDirection.toLowerCase().includes("bearish"));
+  const htfIsBullish = htfDirection === "Bullish" || (typeof htfDirection === "string" && htfDirection.toLowerCase().includes("bullish"));
+
   let confirmationColor = NEUTRAL_COLOR;
   let confirmationBg = "rgba(250, 204, 21, 0.1)";
   let confirmationIcon = Minus;
-  
+
   if (isConfirming) {
     if (htfIsBearish) {
       confirmationColor = BEARISH_COLOR;
@@ -40,7 +41,7 @@ export default function LTFCard({ data, htfDirection }) {
       confirmationBg = "rgba(34, 197, 94, 0.15)";
       confirmationIcon = TrendingUp;
     }
-  } else if (data.trend?.confirmation === "Contradicts HTF") {
+  } else if (data.trend?.confirmation?.toLowerCase().includes("conflict")) {
     confirmationColor = NEUTRAL_COLOR;
     confirmationBg = "rgba(250, 204, 21, 0.15)";
     confirmationIcon = AlertTriangle;
@@ -50,6 +51,26 @@ export default function LTFCard({ data, htfDirection }) {
   const killZone = data.kill_zone;
   const openFvgs = Array.isArray(data.fvg?.open_fvgs) ? data.fvg.open_fvgs : [];
 
+  // Build inducement message safely — no field ever prints as "undefined"
+  const buildInducementMessage = (ind) => {
+    const location = ind.lure_location ? `at ${ind.lure_location}` : "";
+    const stops = ind.retail_stops_targeted_at ? ` — retail stops at ${ind.retail_stops_targeted_at}` : "";
+    const direction = ind.target_direction_after_sweep ? ` — smart money targeting ${ind.target_direction_after_sweep}` : "";
+    return `Inducement ${location}${stops}${direction}`.trim() || "Inducement detected";
+  };
+
+  // LTF OB: new prompt uses range_high/range_low, old used range — support both
+  const obRange = data.order_block?.range ||
+    (data.order_block?.range_high && data.order_block?.range_low
+      ? `${data.order_block.range_low}–${data.order_block.range_high}`
+      : null);
+
+  // Displacement: new prompt uses candle_reference, old used strongest_candle — support both
+  const displacementCandle = data.displacement?.candle_reference || data.displacement?.strongest_candle;
+  const displacementNote = data.displacement?.created_structure
+    ? `Created: ${data.displacement.created_structure}`
+    : null;
+
   return (
     <div className="card border-l-4 border-[#a855f7] flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -57,12 +78,16 @@ export default function LTFCard({ data, htfDirection }) {
           <ShieldAlert size={14} className="text-[#a855f7]" />
           <span className="label">Ltf Confirmation</span>
         </div>
-        <div 
+        <div
           className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
           style={{ color: confirmationColor, backgroundColor: confirmationBg }}
         >
           <confirmationIcon size={10} />
-          {data.trend?.confirmation === "Confirms HTF" ? "Confirming" : data.trend?.confirmation === "Contradicts HTF" ? "Contradicting" : "Neutral"}
+          {isConfirming
+            ? "Confirming"
+            : data.trend?.confirmation?.toLowerCase().includes("conflict")
+            ? "Contradicting"
+            : "Neutral"}
         </div>
       </div>
 
@@ -72,10 +97,13 @@ export default function LTFCard({ data, htfDirection }) {
           <TrendingUp size={10} /> LTF TREND DIRECTION
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#a855f7] font-semibold">Confirms:</span> {DOMPurify.sanitize(data.trend?.confirmation || "—")} • 
-          <span className="text-[#a855f7] font-semibold"> Momentum:</span> {DOMPurify.sanitize(data.trend?.momentum || "—")}
+          <span className="text-[#a855f7] font-semibold">Confirms:</span> {safe(data.trend?.confirmation)} •{" "}
+          <span className="text-[#a855f7] font-semibold">Momentum:</span> {safe(data.trend?.momentum)}
         </p>
-        <p className="text-xs text-muted">Recent structure: {DOMPurify.sanitize(data.trend?.recent_structure || "—")}</p>
+        {data.trend?.conflict_explanation && (
+          <p className="text-xs text-yellow-400">⚠ {safe(data.trend.conflict_explanation)}</p>
+        )}
+        <p className="text-xs text-muted">Recent structure: {safe(data.trend?.recent_structure)}</p>
       </div>
 
       {/* LTF ORDER BLOCK */}
@@ -84,14 +112,15 @@ export default function LTFCard({ data, htfDirection }) {
           <Target size={10} /> LTF ORDER BLOCK
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#a855f7] font-semibold">Zone:</span> {DOMPurify.sanitize(data.order_block?.range || "—")} • 
-          <span className="text-[#a855f7] font-semibold"> Status:</span> {DOMPurify.sanitize(data.order_block?.status || "—")} • 
-          <span className="text-[#a855f7] font-semibold"> Quality:</span> {DOMPurify.sanitize(data.order_block?.quality || "—")}
+          <span className="text-[#a855f7] font-semibold">Zone:</span> {safe(obRange)} •{" "}
+          <span className="text-[#a855f7] font-semibold">Status:</span> {safe(data.order_block?.status)} •{" "}
+          <span className="text-[#a855f7] font-semibold">Quality:</span> {safe(data.order_block?.quality)}
         </p>
         <p className="text-xs text-muted">
-          <span className="text-[#a855f7] font-semibold">Entry Zone:</span> {DOMPurify.sanitize(data.order_block?.limit_entry_zone || "—")}
+          <span className="text-[#a855f7] font-semibold">Entry Zone:</span>{" "}
+          {safe(data.order_block?.limit_entry_zone)}
         </p>
-        <p className="text-xs text-muted">Alignment: {DOMPurify.sanitize(data.order_block?.alignment_with_htf || "—")}</p>
+        <p className="text-xs text-muted">Alignment: {safe(data.order_block?.alignment_with_htf)}</p>
       </div>
 
       {/* LTF FVG */}
@@ -101,16 +130,17 @@ export default function LTFCard({ data, htfDirection }) {
         </div>
         {openFvgs.length > 0 ? (
           openFvgs.map((fvg, idx) => (
-            <p key={`${fvg.position}-${idx}`} className="text-xs text-main">
-              <span className="text-[#a855f7] font-semibold">{DOMPurify.sanitize(fvg.position)}:</span> {DOMPurify.sanitize(fvg.range)}
+            <p key={`${fvg?.position}-${idx}`} className="text-xs text-main">
+              <span className="text-[#a855f7] font-semibold">{safe(fvg?.position)}:</span>{" "}
+              {safe(fvg?.range)}
             </p>
           ))
         ) : (
           <p className="text-xs text-muted">No open FVGs</p>
         )}
         <p className="text-xs text-muted">
-          Fill before entry: {data.fvg?.likely_to_fill_before_entry ? "Yes" : "No"} • 
-          Role: {DOMPurify.sanitize(data.fvg?.role || "—")}
+          Fill before entry: {data.fvg?.fill_likely_before_entry ?? data.fvg?.likely_to_fill_before_entry ? "Yes" : "No"} •{" "}
+          Role: {safe(data.fvg?.role)}
         </p>
       </div>
 
@@ -120,10 +150,11 @@ export default function LTFCard({ data, htfDirection }) {
           <Activity size={10} /> LTF DISPLACEMENT
         </div>
         <p className="text-xs text-main">
-          <span className="text-[#a855f7] font-semibold">Strongest candle:</span> {DOMPurify.sanitize(data.displacement?.strongest_candle || "—")}
+          <span className="text-[#a855f7] font-semibold">Strongest candle:</span>{" "}
+          {safe(displacementCandle)}
         </p>
-        <p className="text-xs text-muted">{DOMPurify.sanitize(data.displacement?.implication || "—")}</p>
-        <p className="text-xs text-muted">Created: {DOMPurify.sanitize(data.displacement?.created_structure || "—")}</p>
+        <p className="text-xs text-muted">{safe(data.displacement?.implication)}</p>
+        {displacementNote && <p className="text-xs text-muted">{safe(displacementNote)}</p>}
       </div>
 
       {/* LTF KILL ZONE */}
@@ -133,7 +164,8 @@ export default function LTFCard({ data, htfDirection }) {
             <Clock size={10} /> KILL ZONE ACTIVE
           </div>
           <p className="text-xs text-main">
-            <span className="text-accent font-semibold">{DOMPurify.sanitize(killZone.name)}</span> • Probability: {DOMPurify.sanitize(killZone.probability)}
+            <span className="text-accent font-semibold">{safe(killZone.name)}</span> • Probability:{" "}
+            {safe(killZone.probability)}
           </p>
         </div>
       )}
@@ -144,23 +176,32 @@ export default function LTFCard({ data, htfDirection }) {
           <div className="flex items-center gap-1.5 text-[10px] font-semibold text-bearish uppercase tracking-wider mb-1">
             <AlertTriangle size={10} /> ⚠ LTF INDUCEMENT DETECTED
           </div>
-          
+
           {!inducement.is_swept && (
             <div className="mb-2 p-1.5 rounded bg-yellow-500/20 border border-yellow-500/40">
               <p className="text-[10px] text-yellow-400 font-semibold">
-                {DOMPurify.sanitize(inducement.not_swept_warning || `⚠ Inducement not yet swept at ${inducement.lure_location} — wait for sweep before entering`)}
+                {safe(
+                  inducement.warning ||
+                  inducement.not_swept_warning ||
+                  (inducement.lure_location
+                    ? `⚠ Inducement not yet swept at ${inducement.lure_location} — wait for sweep before entering`
+                    : "⚠ Inducement not yet swept — wait before entering")
+                )}
               </p>
             </div>
           )}
-          
+
+          {/* FIXED: never interpolates undefined fields directly */}
           <p className="text-xs text-bearish">
-            {DOMPurify.sanitize(inducement.flag_message || `Inducement at ${inducement.lure_location} — retail stops at ${inducement.retail_stops_at} — smart money to sweep before ${inducement.target_direction}`)}
+            {safe(inducement.flag_message) !== "—"
+              ? safe(inducement.flag_message)
+              : buildInducementMessage(inducement)}
           </p>
-          
+
           <div className="mt-2 space-y-1">
             <p className="text-[10px] text-muted">
-              Stop hunt wick: {inducement.stop_hunt_wick ? "Yes" : "No"} • 
-              EQH/EQL: {inducement.eqh_eql_present ? "Yes" : "No"} • 
+              Stop hunt wick: {inducement.stop_hunt_wick ? "Yes" : "No"} •{" "}
+              EQH/EQL: {inducement.eqh_eql_present ? "Yes" : "No"} •{" "}
               Fake breakout: {inducement.fake_breakout ? "Yes" : "No"}
             </p>
             <p className="text-[10px] text-muted">
