@@ -408,7 +408,10 @@ Fields marked [REQUIRED] must always be populated. Fields marked [IF APPLICABLE]
   "mtf_summary": "[2–3 sentences. State MTF confirmation or conflict, entry zone, and inducement status. Or 'Not applicable — only N chart(s) provided.']",
   "m1_summary": "[2–3 sentences. State micro trend, entry trigger condition, and pattern. Or 'Not applicable.']",
 
-  "executive_summary": "[3–5 sentences. Synthesize all timeframes. State the trade direction (or why no trade), the key confluence factors, the entry trigger needed, and the main risk. This must be specific — cite actual price levels.]"
+  "executive_summary": "[3–5 sentences. Synthesize all timeframes. State the trade direction (or why no trade), the key confluence factors, the entry trigger needed, and the main risk. This must be specific — cite actual price levels.]" 
+"CRITICAL: If you describe a trade setup anywhere in executive_summary or any 
+summary field, you MUST set trade_setup.present to true and populate ALL 
+trade_setup fields. A described setup with present: false is a critical error."
 }"
 }`;
 
