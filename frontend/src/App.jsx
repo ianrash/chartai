@@ -1008,8 +1008,8 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                         }
                       }
 
-                      // Fallback: Check executive_summary for trade direction when no structured setup
-                      if (!tradeData?.bias && analysis.executive_summary) {
+                      // Fallback: Check executive_summary for trade direction when no structured setup or WAIT
+                      if ((!tradeData?.bias || tradeData.bias === "WAIT") && analysis.executive_summary) {
                         const execSummary = analysis.executive_summary.toLowerCase();
                         const hasBuySignal = execSummary.includes("buy") || execSummary.includes("long") || execSummary.includes("bullish") || execSummary.includes("call");
                         const hasSellSignal = execSummary.includes("sell") || execSummary.includes("short") || execSummary.includes("bearish") || execSummary.includes("put");
