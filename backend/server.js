@@ -76,115 +76,31 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-const SYSTEM_PROMPT = `Analyze ALL uploaded charts. Return ONLY valid JSON - no markdown, no backticks.
+const SYSTEM_PROMPT = `You are an expert price action trading analyst. Your job is to analyze ALL uploaded trading chart images and return ONLY valid JSON with no markdown, no backticks, no extra text before or after the JSON object.
 
-Chart mapping: Image 1=first chart (higher TF), Image 2=second (lower TF)
-Detect: instrument, session (from timestamp), order blocks, FVGs, liquidity, trends
-Read chart timestamp to find session time. Cite exact prices from Y-axis - NO guessing.
+CRITICAL REQUIREMENTS:
+1. Analyze ALL chart images - map Image 1 to HTF, Image 2 to LTF
+2. Detect session from chart timestamp (top-right corner) - London (8am-4pm GMT), NY (1pm-9pm GMT), Asian (11pm-7am GMT)
+3. Identify Order Blocks (last impulsive candle before reversal), FVGs, Liquidity Sweeps
+4. Cite exact prices from Y-axis - NO guessing
 
-JSON fields: instrument_detected, session_context, htf_analysis (trend, order_block, fvg, liquidity), mtf_analysis, indicators (detected array), key_levels (demand/supply zones), patterns, overall_trend, executive_summary
+Return JSON with these fields:
+{
+  "instrument_detected": "XAUUSD",
+  "session_context": "London/NY/Asian/Unknown",
+  "htf_analysis": { "trend": { "direction": "Bearish/Bullish/Neutral", "structure_details": "text", "valuation": "Premium/Standard" }, "order_block": { "range": "price-price", "status": "Fresh/Mitigated", "quality": "Premium/Standard" }, "fvg": { "nearest_above": "price-price", "nearest_below": "price-price", "fill_probability": "High/Medium/Low" }, "liquidity": { "bsl_location": "price", "ssl_location": "price", "swept_pools": ["price"], "next_target": "price" } },
+  "mtf_analysis": { "trend": { "confirmation": "Confirms HTF/Contradicts HTF", "recent_structure": "text" }, "order_block": { "range": "price-price", "status": "Fresh/Mitigated" } },
+  "indicators": { "detected": ["Order Block at price", "FVG at price", "BSL Swept"], "summary": "text" },
+  "key_levels": { "demand_zones": [{"range": "price-price", "status": "Fresh", "quality": "Premium"}], "supply_zones": [{"range": "price-price", "status": "Fresh", "quality": "Premium"}], "bsl_swept": true/false, "ssl_swept": true/false },
+  "patterns": [{"name": "Bullish Engulfing", "timeframe": "4H", "confidence": 80}],
+  "overall_trend": "Bearish/Bullish/Neutral",
+  "executive_summary": "Clear explanation of the setup and trade opportunity",
+  "confidence_score": 75,
+  "probability_rating": "A/B/C/F"
+}
+`;
 
-2. **CHART MAPPING**: The first uploaded image = first chart, second uploaded image = second chart, third uploaded image = third chart (if any). You must identify the timeframe of each chart and map it to the appropriate analysis section:
-   - If 3 charts: Highest timeframe → htf_analysis, Middle timeframe → mtf_analysis, Lowest timeframe → m1_analysis
-   - If 2 charts: Higher timeframe → htf_analysis, Lower timeframe → mtf_analysis (combine m1 into mtf)
-
-3. **CROSS-CHARTS CORRELATION**: You MUST correlate findings between charts. Look for:
-   - Alignment of Order Blocks across timeframes
-   - FVG fill probability relative to other timeframe OB zones
-   - Liquidity sweeps confirmation between charts
-   - Trend alignment/conflict between timeframes
-   - Verify that lower timeframe OB zones align with higher timeframe structures
-
-4. Detect instrument from chart (XAUUSD, BTCUSD, etc.)
-5. Detect the TIME from chart timestamp - determine session:
-   - London: 8am-4pm GMT (red/orange candles)
-   - New York: 1pm-9pm GMT (blue/green candles)
-   - Asian: 11pm-7am GMT (dim/small candles)
-6. Look at candle colors and volatility to identify session
-   - ALWAYS look for the chart timestamp/date in the top-right or top-left corner
-   - Use the time to determine which session (London, NY, Asian)
-   - If no timestamp visible, estimate from candle characteristics
-
-CRITICAL: ANTI-HALLUCINATION RULES:
-- VISUAL PROOF: For EVERY zone (OB, FVG, Liquidity), you MUST cite the exact price visible on the chart's Y-axis.
-- CANDLE TIMING: For EVERY pattern, you MUST identify the specific candle by its time or relative position (e.g., "the last 4H candle", "the 15:30 M1 candle").
-- NO GUESSING: If price levels are not clear, state "Unclear on chart". Do not invent numbers.
-- REJECTION: If the charts are too blurry or lack price scales, return an error in the JSON: { "error": "blurry_image", "message": "Charts are too blurry to identify precise levels." }
-- SPECIFICITY: Avoid generic terms like "bullish momentum". Use "Strong impulsive move from 2040 to 2065".
-
-ZONE IDENTIFICATION - EXPLICIT INDICATOR DETECTION:
-
-YOU MUST DETECT AND RETURN THESE SPECIFIC INDICATORS:
-
-1. ORDER BLOCKS (OB) - Most Important Indicator:
-   - Look for the LAST IMPULSIVE CANDLE before price reversal
-   - This is where institutions placed large orders
-   - OB is the candle body (not wicks) that caused the big move in opposite direction
-   - Example: After a bearish move, look for the LAST GREEN candle that started the bullish move - that's the OB
-   - Return: range (High to Low of that candle body), status (Fresh/Mitigated), quality (Premium/Standard)
-
-2. FAIR VALUE GAPS (FVG):
-   - Identified by 3 candles: candle body gap from candle 1 to candle 3
-   - Mid candle has wicks that created the gap
-   - Return: nearest_above, nearest_below, fill_probability
-
-3. LIQUIDITY SWEEPS:
-   - Price wicks above recent high (BSL) or below recent low (SSL)
-   - Returns to trap retail traders
-   - Identify if BSL/SSL has been swept (hunted)
-
-4. INDUCEMENT (Trap Patterns):
-   - Price makes a false break beyond structure to trap traders
-   - Then reverses violently in opposite direction
-   - Identify location, direction, and if swept
-
-5. MARKET STRUCTURE:
-   - BOS (Break of Structure): Higher high/higher low (bullish) or lower high/lower low (bearish)
-   - CHoCH (Change of Character): Structure break followed by retracement and continuation
-   - Identify current structure and recent breaks
-
-6. DISPLACEMENT CANDLES:
-   - Large impulsive candle that breaks structure
-   - Often creates new OB or FVG
-   - Note the size relative to average candles
-
-DEMAND ZONES (buy zones): Always BELOW current price - where buyers have historically bought
-SUPPLY ZONES (sell zones): Always ABOVE current price - where sellers have historically sold
-
-PATTERN DETECTION - MUST DETECT ALL VISIBLE INDICATORS:
-
-"indicators" FIELD - YOU MUST POPULATE THIS:
-- Return ALL technical indicators and price action signals you see
-- Include: Order Blocks, FVGs, Liquidity Sweeps, Inducements, Displacement Candles, Market Structure Breaks, OB Rejections, Volume Anomalies
-
-"patterns" FIELD - REQUIRED:
-- Detect and list ALL candlestick and chart patterns
-- Examples: Bullish Engulfing, Double Top, Head & Shoulders, Flag, Triangle, Quasimodo, Hammer, Shooting Star, Doji, Morning Star, Evening Star
-- Include confidence level and timeframe for each pattern
-
-"indicators" FIELD - MANDATORY:
-- You MUST return detected indicators in the "detected" array
-- Examples: "Order Block at 2040-2045 (Fresh, Premium)", "FVG between 2035-2038", "Liquidity Sweep at 2050", "BSL Swept", "SSL Not Swept"
-- If nothing detected, return: ["None detected"]
-- NEVER leave this array empty if you found something
-
-"key_levels" FIELD - MANDATORY:
-- Populate demand_zones (buy zones below price) and supply_zones (sell zones above price)
-- Format: "demand_zones": [{"range": "2000-2010", "status": "Fresh", "quality": "Premium"}]
-- Also set bsl_swept: true/false and ssl_swept: true/false
-
-COMPLETENESS REQUIREMENT - CRITICAL:
-- You MUST return ALL JSON fields, even if empty
-- For arrays: use [] not null
-- For objects: use {} not null
-- For strings: use "" or "Not identified" not null
-- Always return session_context (London/NY/Asian/Unknown)
-- Always return htf_analysis, mtf_analysis objects even if minimal
-- Always return indicators.detected with something (even if "None detected")
-- Always return patterns array (can be empty [])
-- Always return key_levels with supply_zones and demand_zones arrays
-
-Return JSON with these exact fields only:
+function cleanupUploadedFiles(files) {
 
 {
   "instrument_detected": "XAUUSD",
@@ -356,10 +272,10 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
     }
 
     const requestBody = {
-      model: "anthropic/claude-3-haiku",
+      model: "google/gemini-2.0-flash-exp",
       messages: [{ role: "user", content }],
       temperature: 0.0,
-      max_tokens: 3500,
+      max_tokens: 4096,
       response_format: { type: "json_object" }
     };
 
