@@ -1038,6 +1038,35 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                       return <TradeSetup trade={tradeData} alternative={analysis.alternative_scenario} onSave={handleSaveSetup} onCopy={handleCopySetup} confluenceChecklist={analysis.confluence_checklist} />;
                     }
                     
+                    // Check if HTF and LTF are actually aligned - if so, show trade setup even if executive_summary says otherwise
+                    const htfTrend = analysis.htf_analysis?.trend?.direction;
+                    const ltfConfirm = analysis.mtf_analysis?.trend?.confirmation;
+                    const isAligned = (htfTrend === "Bearish" || htfTrend?.toLowerCase()?.includes("bearish")) && ltfConfirm === "Confirms HTF" ||
+                                       (htfTrend === "Bullish" || htfTrend?.toLowerCase()?.includes("bullish")) && ltfConfirm === "Confirms HTF";
+                    
+                    // If HTF and LTF are aligned, show the trade setup
+                    if (isAligned) {
+                      const isBuy = htfTrend === "Bullish" || htfTrend?.toLowerCase()?.includes("bullish");
+                      const htfOB = analysis.htf_analysis?.order_block?.range || analysis.htf_analysis?.order_block;
+                      const mtfOB = analysis.mtf_analysis?.order_block?.range || analysis.mtf_analysis?.order_block;
+                      const entryZone = htfOB || mtfOB || "Identify OB zone";
+                      
+                      const alignedTradeData = {
+                        bias: isBuy ? "BUY" : "SELL",
+                        label: isBuy ? "Bullish Setup" : "Bearish Setup",
+                        execution: {
+                          entry_zone: entryZone,
+                          entry: entryZone,
+                          stop: htfOB || mtfOB || "Structure close",
+                          target: "Next liquidity level",
+                          order_type: "LIMIT",
+                          trigger_condition: `HTF & LTF aligned - ${isBuy ? 'Look for pullback to ' + entryZone : 'Look for rally to ' + entryZone}`
+                        },
+                        invalidation_level: "Close beyond structure"
+                      };
+                      return <TradeSetup trade={alignedTradeData} alternative={analysis.alternative_scenario} onSave={handleSaveSetup} onCopy={handleCopySetup} confluenceChecklist={analysis.confluence_checklist} />;
+                    }
+                    
                     // If only WAIT or no trade, show wait message with context
                     return (
                       <div className="card border border-neutral/30 bg-neutral/5">
