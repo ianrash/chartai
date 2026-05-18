@@ -76,11 +76,13 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-const SYSTEM_PROMPT = `You are an expert price action trading analyst. Your job is to analyze ALL uploaded trading chart images and return ONLY valid JSON with no markdown, no backticks, no extra text before or after the JSON object.
+const SYSTEM_PROMPT = `Analyze ALL uploaded charts. Return ONLY valid JSON - no markdown, no backticks.
 
-CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXPLICITLY:
+Chart mapping: Image 1=first chart (higher TF), Image 2=second (lower TF)
+Detect: instrument, session (from timestamp), order blocks, FVGs, liquidity, trends
+Read chart timestamp to find session time. Cite exact prices from Y-axis - NO guessing.
 
-1. **ANALYZE ALL CHARTS**: You MUST analyze ALL uploaded chart images. Do NOT focus on just one chart. Each uploaded chart must be examined and included in your analysis. If only 2 charts are provided, combine the MTF and M1 analysis appropriately.
+JSON fields: instrument_detected, session_context, htf_analysis (trend, order_block, fvg, liquidity), mtf_analysis, indicators (detected array), key_levels (demand/supply zones), patterns, overall_trend, executive_summary
 
 2. **CHART MAPPING**: The first uploaded image = first chart, second uploaded image = second chart, third uploaded image = third chart (if any). You must identify the timeframe of each chart and map it to the appropriate analysis section:
    - If 3 charts: Highest timeframe → htf_analysis, Middle timeframe → mtf_analysis, Lowest timeframe → m1_analysis
@@ -357,7 +359,7 @@ CRITICAL: Image 1 = first uploaded chart, Image 2 = second, Image 3 = third (if 
       model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content }],
       temperature: 0.0,
-      max_tokens: 8192,
+      max_tokens: 3500,
       response_format: { type: "json_object" }
     };
 
