@@ -751,13 +751,12 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                       if (analysis.patterns && analysis.patterns.length > 0) {
                         // Include more patterns - remove overly aggressive filtering
                         // Only filter out clearly invalid entries
-                        detectedPatterns = analysis.patterns.filter(p => 
-                          p.name && p.name.length > 0 &&
-                          (!p.timeframe || uploadedTFs.includes(p.timeframe)) &&
-                          // Only exclude truly generic non-patterns
-                          !p.name?.toLowerCase().includes("liquidity pool") &&
-                          p.name?.length > 1
-                        );
+                        detectedPatterns = analysis.patterns.filter(p => {
+                          const name = typeof p === 'object' ? p.name : p;
+                          return name && typeof name === 'string' && name.length > 1 &&
+                            (!p.timeframe || uploadedTFs.includes(p.timeframe)) &&
+                            !name.toLowerCase().includes("liquidity pool");
+                        });
                       }
                       
                       // If no patterns from array, get from m1_analysis candlestick_patterns
@@ -768,7 +767,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                         // From m1 analysis - real candlestick patterns only
                         if (analysis.m1_analysis?.candlestick_patterns?.length > 0) {
                           analysis.m1_analysis.candlestick_patterns.forEach(p => {
-                            if (validPatterns.some(vp => p.toLowerCase().includes(vp.toLowerCase()))) {
+                            if (typeof p === 'string' && validPatterns.some(vp => p.toLowerCase().includes(vp.toLowerCase()))) {
                               patternSources.push({ name: p, timeframe: "M1", confidence: 70 });
                             }
                           });
@@ -776,7 +775,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                         // From mtf analysis candlestick patterns
                         if (analysis.mtf_analysis?.candlestick_patterns?.length > 0) {
                           analysis.mtf_analysis.candlestick_patterns.forEach(p => {
-                            if (validPatterns.some(vp => p.toLowerCase().includes(vp.toLowerCase()))) {
+                            if (typeof p === 'string' && validPatterns.some(vp => p.toLowerCase().includes(vp.toLowerCase()))) {
                               patternSources.push({ name: p, timeframe: "MTF", confidence: 65 });
                             }
                           });
@@ -789,14 +788,23 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                         {
                           title: "DETECTED PATTERNS",
                           content: detectedPatterns.length > 0 
-                            ? detectedPatterns.map(p => `${p.name} (${p.timeframe})`).join(", ")
+                            ? detectedPatterns.map(p => {
+                                const name = typeof p === 'object' ? p.name : p;
+                                const tf = typeof p === 'object' ? p.timeframe : 'Unknown';
+                                return `${name} (${tf})`;
+                              }).join(", ")
                             : "No clear candlestick patterns detected",
                         },
-                        ...(detectedPatterns.length > 0 ? detectedPatterns.map(p => ({
-                          title: p.name.toUpperCase(),
-                          content: `${p.timeframe} timeframe - ${p.confidence}% confidence`,
-                          sub: null
-                        })) : [])
+                        ...(detectedPatterns.length > 0 ? detectedPatterns.map(p => {
+                          const name = typeof p === 'object' ? p.name : p;
+                          const conf = typeof p === 'object' ? p.confidence : 0;
+                          const tf = typeof p === 'object' ? p.timeframe : 'Unknown';
+                          return {
+                            title: name.toUpperCase(),
+                            content: `${tf} timeframe - ${conf}% confidence`,
+                            sub: null
+                          };
+                        }) : [])
                       ];
                     })()}
                   />
