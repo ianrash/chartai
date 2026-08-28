@@ -1,7 +1,6 @@
-import { useMemo } from "react";
-import { Save, AlertTriangle, Target, Zap, TrendingUp, TrendingDown, Clock, ShieldAlert, Copy, Activity, ShieldCheck, BarChart3 } from "lucide-react";
+import { Save, AlertTriangle, Target, Zap, TrendingUp, TrendingDown, Clock, ShieldAlert, Copy, Activity } from "lucide-react";
 import DOMPurify from "dompurify";
-import { calcRating, calculateAccountGuard } from "../api/tradeValidation";
+import { calcRating } from "../api/tradeValidation";
 
 const toLocaleSafe = (v) => {
   const n = Number(v);
@@ -25,47 +24,13 @@ const displayValue = (val) => {
   return String(val);
 };
 
-export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist, rating: propRating, alternative, accountBalance, riskPercent, instrument, symbol }) {
+export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist, rating: propRating, alternative }) {
   if (!trade) return null;
 
   const isWait = trade.bias?.toUpperCase() === "WAIT";
   const isBuy = trade.bias?.toUpperCase() === "BUY";
   const { execution } = trade;
   const rating = propRating ?? trade.rating ?? calcRating(confluenceChecklist);
-
-  // --- Reactive Account Guard Computation ---
-  const accountGuard = useMemo(() => {
-    if (!accountBalance || !riskPercent || !execution) return null;
-
-    // Extract numeric prices from execution
-    const parsePrice = (val) => {
-      if (val == null) return NaN;
-      if (typeof val === 'number') return val;
-      const str = String(val).replace(/,/g, '').trim();
-      const nums = str.match(/[\d]+\.?[\d]*/g);
-      if (!nums || nums.length === 0) return NaN;
-      const parsed = nums.map(parseFloat).filter(n => String(n).includes('.') || String(n).length >= 2);
-      if (parsed.length === 0) return NaN;
-      if (parsed.length === 1) return parsed[0];
-      return (parsed[0] + parsed[1]) / 2;
-    };
-
-    const entry = parsePrice(execution.entry_zone || execution.entry);
-    const stop = parsePrice(execution.stop);
-    const target = parsePrice(execution.target);
-
-    if (isNaN(entry) || isNaN(stop)) return null;
-
-    return calculateAccountGuard({
-      accountBalance,
-      riskPercent,
-      entry,
-      stop,
-      target: isNaN(target) ? undefined : target,
-      isBuy,
-      instrument: instrument || symbol || '',
-    });
-  }, [accountBalance, riskPercent, execution, isBuy, instrument, symbol]);
 
   const ratingColors = {
     "A+": { bg: "var(--bullish-glow)", border: "rgba(8, 153, 129, 0.4)", text: "var(--bullish)" },
@@ -190,130 +155,6 @@ export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist,
             </p>
           </div>
         </div>
-
-        {/* ── Account Guard Panel ── */}
-        {accountGuard && accountGuard.status !== 'error' && (
-          <div
-            className="rounded-xl p-3 sm:p-4 relative overflow-hidden"
-            style={{
-              background:
-                accountGuard.status === 'safe'
-                  ? "var(--bullish-glow)"
-                  : accountGuard.status === 'over_risking'
-                  ? "var(--neutral-glow)"
-                  : "var(--bearish-glow)",
-              border:
-                accountGuard.status === 'safe'
-                  ? "1px solid rgba(8, 153, 129, 0.25)"
-                  : accountGuard.status === 'over_risking'
-                  ? "1px solid rgba(209, 163, 63, 0.25)"
-                  : "1px solid rgba(242, 54, 69, 0.3)",
-            }}
-          >
-            {/* Status header */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={15} style={{
-                  color:
-                    accountGuard.status === 'safe'
-                      ? "var(--bullish)"
-                      : accountGuard.status === 'over_risking'
-                      ? "var(--neutral)"
-                      : "var(--bearish)",
-                }} />
-                <span className="label" style={{
-                  color:
-                    accountGuard.status === 'safe'
-                      ? "var(--bullish)"
-                      : accountGuard.status === 'over_risking'
-                      ? "var(--neutral)"
-                      : "var(--bearish)",
-                }}>
-                  {accountGuard.status === 'safe' ? 'Account Safe'
-                   : accountGuard.status === 'over_risking' ? 'Over-Risking'
-                   : 'Wipeout Risk'}
-                </span>
-              </div>
-              {/* Lot size badge */}
-              {accountGuard.status === 'safe' && (
-                <span className="badge mono" style={{ background: "var(--bullish-glow)", border: "1px solid rgba(8, 153, 129, 0.3)", color: "var(--bullish)" }}>
-                  {accountGuard.idealLotSize.toFixed(2)} lots
-                </span>
-              )}
-              {accountGuard.status !== 'safe' && (
-                <span
-                  className={`badge mono ${accountGuard.status === 'over_risking' ? "" : "animate-pulse-slow"}`}
-                  style={
-                    accountGuard.status === 'over_risking'
-                      ? { background: "var(--neutral-glow)", border: "1px solid rgba(209, 163, 63, 0.3)", color: "var(--neutral)" }
-                      : { background: "var(--bearish-glow)", border: "1px solid rgba(242, 54, 69, 0.3)", color: "var(--bearish)" }
-                  }
-                >
-                  0.01 lots = {accountGuard.minLotRiskPercent}%
-                </span>
-              )}
-            </div>
-
-            {/* Status message */}
-            <p className="text-xs leading-relaxed mb-2" style={{ color: "var(--text-secondary)" }}>
-              {accountGuard.statusMessage}
-            </p>
-
-            {/* Risk metrics row */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="card-flat !p-2 text-center">
-                <p className="label">Lot Size</p>
-                <p className="mono text-sm font-bold tabular" style={{ color: accountGuard.status === 'safe' ? "var(--bullish)" : "var(--text-main)" }}>
-                  {accountGuard.status === 'safe' ? accountGuard.idealLotSize.toFixed(2) : '0.01 (min)'}
-                </p>
-              </div>
-              <div className="card-flat !p-2 text-center">
-                <p className="label">Max Risk $</p>
-                <p className="mono text-sm font-bold tabular" style={{ color: "var(--text-main)" }}>
-                  ${accountGuard.riskAmountDollars.toFixed(2)}
-                </p>
-              </div>
-              <div className="card-flat !p-2 text-center">
-                <p className="label">Min Lot $</p>
-                <p className="mono text-sm font-bold tabular" style={{
-                  color:
-                    accountGuard.status === 'safe'
-                      ? "var(--text-main)"
-                      : accountGuard.status === 'over_risking'
-                      ? "var(--neutral)"
-                      : "var(--bearish)",
-                }}>
-                  ${accountGuard.minLotRiskDollars.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            {/* Account-Guarded SL/TP — only shown when over-risking or wipeout */}
-            {(accountGuard.status === 'over_risking' || accountGuard.status === 'wipeout_risk') && accountGuard.guardedStop && (
-              <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 size={13} className="tone-accent" />
-                  <span className="label tone-accent">Account-Guarded Levels</span>
-                </div>
-                <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
-                  SL tightened so 0.01 lots risks exactly ${accountGuard.riskAmountDollars.toFixed(2)} ({riskPercent}%){accountGuard.guardedRR ? `, preserving ${accountGuard.guardedRR.toFixed(1)}:1 R:R.` : '.'}
-                </p>
-                <div className={`grid ${accountGuard.guardedTarget ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
-                  <div className="card-flat !p-2" style={{ background: "var(--bearish-glow)", border: "1px solid rgba(242, 54, 69, 0.2)" }}>
-                    <p className="label" style={{ color: "var(--bearish)" }}>Guarded Stop</p>
-                    <p className="mono text-sm font-bold tabular" style={{ color: "var(--bearish)" }}>{accountGuard.guardedStop.toLocaleString()}</p>
-                  </div>
-                  {accountGuard.guardedTarget && (
-                    <div className="card-flat !p-2" style={{ background: "var(--bullish-glow)", border: "1px solid rgba(8, 153, 129, 0.2)" }}>
-                      <p className="label" style={{ color: "var(--bullish)" }}>Guarded Target</p>
-                      <p className="mono text-sm font-bold tabular" style={{ color: "var(--bullish)" }}>{accountGuard.guardedTarget.toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Trigger Conditions */}
         <div className="card-flat relative !pt-4">
