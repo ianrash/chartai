@@ -456,6 +456,8 @@ export default function App() {
       date: now.toLocaleString(),
       bias: trade.bias,
       entry: trade.execution?.entry_zone || trade.execution?.entry || "Market",
+      stop: trade.execution?.stop || null,
+      target: trade.execution?.target || null,
       rr: trade.execution?.risk_reward || (trade.execution?.r_multiple ? `1:${trade.execution.r_multiple}` : "—"),
       rating: analysis?.probability_rating || 'B',
       score: 0,

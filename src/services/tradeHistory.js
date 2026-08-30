@@ -45,6 +45,14 @@ export async function saveTradeToHistory(userId, trade) {
     tags: trade.tags ?? [],
     notes: trade.notes ?? '',
     broker: trade.broker ?? 'Manual',
+    // ---- Journal-only fields ----
+    stop: trade.stop ?? null,
+    target: trade.target ?? null,
+    risk: trade.risk ?? null,          // manual R-multiple override (auto if null)
+    emotion: trade.emotion ?? '',
+    lesson: trade.lesson ?? '',
+    followedPlan: trade.followedPlan ?? null,
+    brokenRules: trade.brokenRules ?? [],
   };
   if (supabase && userId) {
     const { data, error } = await supabase
@@ -58,6 +66,35 @@ export async function saveTradeToHistory(userId, trade) {
   arr.unshift(entry);
   saveLocal(arr);
   return entry;
+}
+
+// Auto-compute realized R-multiple: pnl / risk(entry-stop distance).
+// Falls back to manual risk override; null when insufficient data.
+export function computeRMultiple(trade) {
+  if (trade.risk != null && trade.risk !== '' && !isNaN(Number(trade.risk))) return Number(trade.risk);
+  if (trade.pnl == null || isNaN(Number(trade.pnl))) return null;
+  const pnl = Number(trade.pnl);
+  const entry = parseFloat(String(trade.entry || '').replace(/,/g, ''));
+  const stop = parseFloat(String(trade.stop || '').replace(/,/g, ''));
+  if (!isFinite(entry) || !isFinite(stop) || entry === stop) return null;
+  const riskPerUnit = Math.abs(entry - stop);
+  if (riskPerUnit <= 0) return null;
+  const r = pnl / riskPerUnit;
+  if (!isFinite(r)) return null;
+  return Math.round(r * 100) / 100;
+}
+
+// Map a symbol to an instrument group for filtering.
+const GROUP_HINTS = [
+  { group: 'crypto',  re: /BTC|ETH|SOL|XRP|DOGE|LTC|ADA|BNB|USDT|XLM|DOT|AVAX|MATIC|LINK|Crypto/i },
+  { group: 'index',   re: /SPX|SP500|US500|NDX|US100|NAS|DJI|US30|DOW|IXIC|RUT|VIX|^GSPC|^DJI|^IXIC|^RUT|^VIX/i },
+  { group: 'commodity', re: /GC=|CL=|SI=|HG=|NG=|XAU|XAG|GOLD|OIL|WTI|Brent|Copper|Silver/ },
+  { group: 'forex',   re: /USD|EUR|GBP|JPY|CHF|AUD|NZD|CAD|XAUUSD|GOLD/i },
+];
+export function symbolGroup(symbol) {
+  const s = String(symbol || '');
+  for (const h of GROUP_HINTS) if (h.re.test(s)) return h.group;
+  return 'other';
 }
 
 export async function updateTradeStatus(userId, tradeId, status) {
@@ -103,8 +140,11 @@ export async function bulkImportTrades(userId, trades) {
 }
 
 export function exportTradesCSV(trades) {
-  const headers = ['id','symbol','date','bias','entry','rr','rating','status','pnl','notes'];
-  const rows = trades.map(t=> headers.map(h=> `"${String(t[h]??'').replace(/"/g,'""')}"`).join(','));
+  const headers = ['id','symbol','date','bias','entry','stop','target','risk','rr','rating','status','pnl','notes','emotion','lesson','followedPlan','brokenRules'];
+  const rows = trades.map(t=> headers.map(h=> {
+    const v = h==='brokenRules' ? (t.brokenRules||[]).join('|') : t[h];
+    return `"${String(v??'').replace(/"/g,'""')}"`;
+  }).join(','));
   return [headers.join(','), ...rows].join('\n');
 }
 
@@ -124,11 +164,18 @@ export function parseCSV(text) {
       date: obj.date|| new Date().toLocaleString(),
       bias: obj.bias||'BUY',
       entry: obj.entry||'Market',
+      stop: obj.stop||null,
+      target: obj.target||null,
+      risk: obj.risk? Number(obj.risk): null,
       rr: obj.rr||'—',
       rating: obj.rating||'B',
       status: obj.status||'Pending',
       pnl: obj.pnl? Number(obj.pnl): null,
       notes: obj.notes||'',
+      emotion: obj.emotion||'',
+      lesson: obj.lesson||'',
+      followedPlan: obj.followedPlan==='true'? true: obj.followedPlan==='false'? false: (obj.followedPlan??null),
+      brokenRules: (obj.brokenRules? String(obj.brokenRules).split('|').map(s=>s.trim()).filter(Boolean): []),
       score: 0,
       analysis: null,
     };
@@ -150,7 +197,39 @@ export function computeStats(trades) {
   // calendar map date -> count/pnl
   const byDay={};
   trades.forEach(t=>{ const d=new Date(t.created_at||t.date); if(isNaN(d))return; const key=d.toISOString().slice(0,10); if(!byDay[key])byDay[key]={count:0,pnl:0,wins:0,losses:0}; byDay[key].count++; if(t.pnl)byDay[key].pnl+=Number(t.pnl); if(t.status==='Win')byDay[key].wins++; if(t.status==='Loss')byDay[key].losses++; });
-  return { total, wins, losses, pending, winRate, totalPnl, best, worst, bySymbol, byBias, byDay };
+  // ---- R-multiple ----
+  const rValues = trades.map(computeRMultiple).filter(r=> r!=null);
+  const totalR = rValues.length? rValues.reduce((a,b)=>a+b,0):0;
+  const avgR = rValues.length? Math.round((totalR/rValues.length)*100)/100: null;
+  const expectancyR = total? Math.round((totalR/total)*100)/100 : null;
+  const profitFactor = rValues.length? (()=>{ const g=rValues.filter(r=>r>0).reduce((a,b)=>a+b,0); const l=Math.abs(rValues.filter(r=>r<0).reduce((a,b)=>a+b,0)); return l>0? Math.round((g/l)*100)/100 : (g>0? Infinity : 0); })() : null;
+  // ---- Discipline ----
+  const decided = trades.filter(t=> t.followedPlan===true || t.followedPlan===false);
+  const followedCount = decided.filter(t=> t.followedPlan===true).length;
+  const disciplineScore = decided.length? Math.round((followedCount/decided.length)*100): null;
+  const ruleBreaks = {};
+  trades.forEach(t=>{ (t.brokenRules||[]).forEach(r=>{ ruleBreaks[r]=(ruleBreaks[r]||0)+1; }); });
+  // ---- Weekly / monthly profit curve ----
+  const byWeek={}, byMonth={};
+  trades.forEach(t=>{ const d=new Date(t.created_at||t.date); if(isNaN(d))return;
+    const pad=n=>String(n).padStart(2,'0');
+    const weekKey=`${d.getFullYear()}-W${pad(Math.ceil((d.getDate())/7))}`;
+    const monthKey=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    if(!byWeek[weekKey])byWeek[weekKey]={pnl:0,count:0};
+    if(!byMonth[monthKey])byMonth[monthKey]={pnl:0,count:0};
+    const p=Number(t.pnl)||0;
+    byWeek[weekKey].pnl+=p; byWeek[weekKey].count++;
+    byMonth[monthKey].pnl+=p; byMonth[monthKey].count++;
+  });
+  const weekSeries = Object.entries(byWeek).map(([k,v])=>({key:k,...v})).sort((a,b)=>a.key.localeCompare(b.key));
+  const monthSeries = Object.entries(byMonth).map(([k,v])=>({key:k,...v})).sort((a,b)=>a.key.localeCompare(b.key));
+  // ---- Best / worst DAY (by net pnl) ----
+  let bestDay=null, worstDay=null;
+  Object.entries(byDay).forEach(([key,v])=>{ if(v.count===0)return; if(!bestDay||v.pnl>bestDay.pnl) bestDay={key,...v}; if(!worstDay||v.pnl<worstDay.pnl) worstDay={key,...v}; });
+  return { total, wins, losses, pending, winRate, totalPnl, best, worst, bySymbol, byBias, byDay,
+    totalR, avgR, expectancyR, profitFactor,
+    disciplineScore, ruleBreaks, decided,
+    weekSeries, monthSeries, bestDay, worstDay };
 }
 
 // Watchlist helpers
