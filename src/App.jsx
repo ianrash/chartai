@@ -450,7 +450,8 @@ export default function App() {
 
   const handleSaveSetup = async (trade) => {
     const now = new Date();
-
+    const ov = analysis?.overall_trend || '';
+    const marketCondition = ov.toLowerCase().includes('range')||ov.toLowerCase().includes('sideways')?'Ranging':ov.toLowerCase().includes('trend')?'Trending':ov.toLowerCase().includes('chop')?'Choppy':ov.toLowerCase().includes('volatile')?'Volatile':ov.toLowerCase().includes('quiet')?'Quiet':null;
     const newEntry = {
       symbol: symbol || analysis?.instrument_detected || "Unknown",
       date: now.toLocaleString(),
@@ -463,6 +464,11 @@ export default function App() {
       score: 0,
       status: "Pending",
       analysis: analysis,
+      setupType: null,
+      marketCondition,
+      thesis: analysis?.executive_summary || analysis?.trade_setup?.trigger_condition || '',
+      whatWentWell: '',
+      whatToImprove: '',
     };
 
     if (session?.user) {

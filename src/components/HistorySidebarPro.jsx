@@ -26,7 +26,7 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
       const dKey = isNaN(iso)? '': iso.toISOString().slice(0,10);
       if(dateFrom && dKey && dKey < dateFrom) return false;
       if(dateTo && dKey && dKey > dateTo) return false;
-      if(search && !`${h.symbol} ${h.bias} ${h.entry} ${h.rating} ${h.emotion||''} ${h.notes||''}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if(search && !`${h.symbol} ${h.bias} ${h.entry} ${h.rating} ${h.emotion||''} ${h.notes||''} ${h.setupType||''} ${h.marketCondition||''}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [history, filter, groupFilter, dateFrom, dateTo, search]);
@@ -145,6 +145,29 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
                     <label className="block"><span className="label !normal-case !tracking-normal block mb-1">Lesson</span><input defaultValue={item.lesson||''} onBlur={e=>updateField(item,'lesson',e.target.value)} placeholder="What to learn..." className="field text-xs"/></label>
                   </div>
                   <label className="block"><span className="label !normal-case !tracking-normal block mb-1">Notes</span><textarea defaultValue={item.notes||''} onBlur={e=>updateField(item,'notes',e.target.value)} placeholder="Why entered, context..." className="field text-xs"/></label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block"><span className="label !normal-case !tracking-normal block mb-1">Setup Type</span>
+                      <select className="field text-xs" defaultValue={item.setupType||''} onChange={e=>updateField(item,'setupType',e.target.value||null)}>
+                        <option value="">— none —</option>
+                        {['Breakout','Reversal','Continuation','Scalp','Swing','News'].map(s=> <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </label>
+                    <label className="block"><span className="label !normal-case !tracking-normal block mb-1">Market Condition</span>
+                      <select className="field text-xs" defaultValue={item.marketCondition||''} onChange={e=>updateField(item,'marketCondition',e.target.value||null)}>
+                        <option value="">— none —</option>
+                        {['Trending','Ranging','Choppy','Volatile','Quiet'].map(s=> <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block"><span className="label !normal-case !tracking-normal block mb-1">Trade Thesis</span><textarea defaultValue={item.thesis||''} onBlur={e=>updateField(item,'thesis',e.target.value)} placeholder="Why I took this trade..." className="field text-xs"/></label>
+                  <div className="rounded-xl p-3" style={{background:'var(--surface-2)',border:'1px solid var(--border)'}}>
+                    <div className="flex items-center gap-2 mb-2"><span className="text-accent font-bold text-xs">✓</span><span className="text-[10px] font-bold text-main uppercase tracking-wider">What Went Well</span></div>
+                    <textarea defaultValue={item.whatWentWell||''} onBlur={e=>updateField(item,'whatWentWell',e.target.value)} placeholder="Strengths of this trade..." className="field text-xs" rows={2}/>
+                  </div>
+                  <div className="rounded-xl p-3" style={{background:'var(--surface-2)',border:'1px solid var(--border)'}}>
+                    <div className="flex items-center gap-2 mb-2"><span className="text-bearish font-bold text-xs">→</span><span className="text-[10px] font-bold text-main uppercase tracking-wider">What to Improve</span></div>
+                    <textarea defaultValue={item.whatToImprove||''} onBlur={e=>updateField(item,'whatToImprove',e.target.value)} placeholder="Mistakes or lessons for next time..." className="field text-xs" rows={2}/>
+                  </div>
                   <div className="rounded-xl p-3" style={{background:'var(--surface-2)',border:'1px solid var(--border)'}}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="label">Followed plan?</span>

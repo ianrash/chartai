@@ -53,6 +53,11 @@ export async function saveTradeToHistory(userId, trade) {
     lesson: trade.lesson ?? '',
     followedPlan: trade.followedPlan ?? null,
     brokenRules: trade.brokenRules ?? [],
+    setupType: trade.setupType ?? null,          // Breakout|Reversal|Continuation|Scalp|Swing|News
+    marketCondition: trade.marketCondition ?? null, // Trending|Ranging|Choppy|Volatile|Quiet
+    thesis: trade.thesis ?? '',                  // why I took this trade
+    whatWentWell: trade.whatWentWell ?? '',
+    whatToImprove: trade.whatToImprove ?? '',
   };
   if (supabase && userId) {
     const { data, error } = await supabase
@@ -82,6 +87,18 @@ export function computeRMultiple(trade) {
   const r = pnl / riskPerUnit;
   if (!isFinite(r)) return null;
   return Math.round(r * 100) / 100;
+}
+
+// Compute win/loss streaks from resolved trades.
+export function computeStreaks(trades) {
+  const resolved = trades.filter(t => t.status === 'Win' || t.status === 'Loss');
+  resolved.sort((a,b) => new Date(a.created_at||a.date) - new Date(b.created_at||b.date));
+  let currentWin=0, currentLoss=0, maxWin=0, maxLoss=0;
+  resolved.forEach(t=>{
+    if(t.status==='Win'){ currentWin++; currentLoss=0; maxWin=Math.max(maxWin,currentWin); }
+    else { currentLoss++; currentWin=0; maxLoss=Math.max(maxLoss,currentLoss); }
+  });
+  return { currentWin, currentLoss, maxWin, maxLoss };
 }
 
 // Map a symbol to an instrument group for filtering.
@@ -140,7 +157,7 @@ export async function bulkImportTrades(userId, trades) {
 }
 
 export function exportTradesCSV(trades) {
-  const headers = ['id','symbol','date','bias','entry','stop','target','risk','rr','rating','status','pnl','notes','emotion','lesson','followedPlan','brokenRules'];
+  const headers = ['id','symbol','date','bias','entry','stop','target','risk','rr','rating','status','pnl','notes','emotion','lesson','followedPlan','brokenRules','setupType','marketCondition','thesis','whatWentWell','whatToImprove'];
   const rows = trades.map(t=> headers.map(h=> {
     const v = h==='brokenRules' ? (t.brokenRules||[]).join('|') : t[h];
     return `"${String(v??'').replace(/"/g,'""')}"`;
@@ -176,6 +193,11 @@ export function parseCSV(text) {
       lesson: obj.lesson||'',
       followedPlan: obj.followedPlan==='true'? true: obj.followedPlan==='false'? false: (obj.followedPlan??null),
       brokenRules: (obj.brokenRules? String(obj.brokenRules).split('|').map(s=>s.trim()).filter(Boolean): []),
+      setupType: obj.setupType||null,
+      marketCondition: obj.marketCondition||null,
+      thesis: obj.thesis||'',
+      whatWentWell: obj.whatWentWell||'',
+      whatToImprove: obj.whatToImprove||'',
       score: 0,
       analysis: null,
     };
@@ -209,6 +231,13 @@ export function computeStats(trades) {
   const disciplineScore = decided.length? Math.round((followedCount/decided.length)*100): null;
   const ruleBreaks = {};
   trades.forEach(t=>{ (t.brokenRules||[]).forEach(r=>{ ruleBreaks[r]=(ruleBreaks[r]||0)+1; }); });
+  // ---- Streaks ----
+  const streaks = computeStreaks(trades);
+  // ---- By setup type & market condition ----
+  const byCondition={}; trades.forEach(t=>{ const c=t.marketCondition||'Unspecified'; byCondition[c]=(byCondition[c]||0)+1; });
+  const bySetupType={}; trades.forEach(t=>{ const s=t.setupType||'Unspecified'; bySetupType[s]=(bySetupType[s]||0)+1; });
+  const setupStats={}; trades.forEach(t=>{ const s=t.setupType||'Unspecified'; if(!setupStats[s]) setupStats[s]={wins:0,total:0}; setupStats[s].total++; if(t.status==='Win') setupStats[s].wins++; });
+  const bestSetupType = Object.entries(setupStats).filter(([,v])=>v.total>=3).sort((a,b)=>(b[1].wins/b[1].total)-(a[1].wins/a[1].total))[0]?.[0] || null;
   // ---- Weekly / monthly profit curve ----
   const byWeek={}, byMonth={};
   trades.forEach(t=>{ const d=new Date(t.created_at||t.date); if(isNaN(d))return;
@@ -229,7 +258,8 @@ export function computeStats(trades) {
   return { total, wins, losses, pending, winRate, totalPnl, best, worst, bySymbol, byBias, byDay,
     totalR, avgR, expectancyR, profitFactor,
     disciplineScore, ruleBreaks, decided,
-    weekSeries, monthSeries, bestDay, worstDay };
+    weekSeries, monthSeries, bestDay, worstDay,
+    streaks, byCondition, bySetupType, bestSetupType };
 }
 
 // Watchlist helpers

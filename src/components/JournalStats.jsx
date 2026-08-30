@@ -23,13 +23,80 @@ export default function JournalStats({ stats }) {
     { label:'Worst Day', value: stats.worstDay? `${stats.worstDay.key.slice(5)} $${Number(stats.worstDay.pnl).toFixed(0)}` : '—', icon: LossDay, color:'var(--bearish)' },
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {cards.map(c=> (
-        <div key={c.label} className="rounded-xl p-3 flex items-center gap-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background:`${c.color}15`, color:c.color}}><c.icon size={16}/></div>
-          <div className="min-w-0"><p className="text-[10px] text-muted uppercase tracking-wider">{c.label}</p><p className="text-sm font-bold text-main truncate">{c.value}</p></div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {cards.map(c=> (
+          <div key={c.label} className="rounded-xl p-3 flex items-center gap-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background:`${c.color}15`, color:c.color}}><c.icon size={16}/></div>
+            <div className="min-w-0"><p className="text-[10px] text-muted uppercase tracking-wider">{c.label}</p><p className="text-sm font-bold text-main truncate">{c.value}</p></div>
+          </div>
+        ))}
+      </div>
+      {stats.streaks && <StreaksCard streaks={stats.streaks} />}
+      {(stats.bySetupType || stats.byCondition) && <SetupConditionStats bySetupType={stats.bySetupType} byCondition={stats.byCondition} bestSetupType={stats.bestSetupType} />}
+    </div>
+  );
+}
+
+function StreaksCard({ streaks }) {
+  const cards = [
+    { label:'Current Win Streak', value: streaks.currentWin, icon: TrendingUp, color:'var(--bullish)', accent: streaks.currentWin>0 },
+    { label:'Current Loss Streak', value: streaks.currentLoss, icon: TrendingDown, color:'var(--bearish)', accent: streaks.currentLoss>0 },
+    { label:'Max Win Streak', value: streaks.maxWin, icon: Flame, color:'var(--bullish)' },
+    { label:'Max Loss Streak', value: streaks.maxLoss, icon: LossDay, color:'var(--bearish)' },
+  ];
+  return (
+    <div className="rounded-xl p-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Streaks</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {cards.map(c=> (
+          <div key={c.label} className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{background:`${c.color}15`, color:c.color}}><c.icon size={12}/></div>
+            <div><p className="text-[9px] text-muted uppercase leading-tight">{c.label}</p><p className={`text-sm font-bold ${c.accent?'animate-pulse-slow':''}`} style={{color:c.color}}>{c.value}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const SETUP_COLORS = {Breakout:'#2962ff',Reversal:'#089981',Continuation:'#d1a33f',Scalp:'#9c6bcf',Swing:'#f23645',News:'#6b7280',Unspecified:'var(--muted)'};
+const COND_COLORS = {Trending:'#089981',Ranging:'#2962ff',Choppy:'#d1a33f',Volatile:'#f23645',Quiet:'#6b7280',Unspecified:'var(--muted)'};
+
+function SetupConditionStats({ bySetupType, byCondition, bestSetupType }) {
+  const maxSetup = Math.max(...Object.values(bySetupType||{}), 1);
+  const maxCond = Math.max(...Object.values(byCondition||{}), 1);
+  return (
+    <div className="rounded-xl p-3 space-y-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted uppercase tracking-wider">Setup Types</span>
+        {bestSetupType && bestSetupType!=='Unspecified' && <span className="text-[9px] font-bold" style={{color:'var(--bullish)'}}>Best: {bestSetupType}</span>}
+      </div>
+      <div className="space-y-1.5">
+        {Object.entries(bySetupType||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>(
+          <div key={k} className="flex items-center gap-2">
+            <span className="text-[9px] text-muted w-[80px] truncate">{k}</span>
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'var(--surface-3)'}}>
+              <div className="h-full rounded-full" style={{width:`${(v/maxSetup)*100}%`, background:SETUP_COLORS[k]||'var(--accent)', opacity:0.75}} />
+            </div>
+            <span className="text-[9px] font-bold" style={{color:SETUP_COLORS[k]||'var(--accent)'}}>{v}</span>
+          </div>
+        ))}
+      </div>
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Market Condition</p>
+        <div className="space-y-1.5">
+          {Object.entries(byCondition||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>(
+            <div key={k} className="flex items-center gap-2">
+              <span className="text-[9px] text-muted w-[80px] truncate">{k}</span>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'var(--surface-3)'}}>
+                <div className="h-full rounded-full" style={{width:`${(v/maxCond)*100}%`, background:COND_COLORS[k]||'var(--accent)', opacity:0.75}} />
+              </div>
+              <span className="text-[9px] font-bold" style={{color:COND_COLORS[k]||'var(--accent)'}}>{v}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
