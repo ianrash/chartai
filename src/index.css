@@ -353,6 +353,7 @@
     background: rgba(0, 0, 0, 0.6);
   }
 
+  .heatmap-cell { animation: fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
   .modal-panel {
     border-radius: 16px;
     border: 1px solid var(--border);

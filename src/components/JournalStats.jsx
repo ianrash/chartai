@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Activity, Calendar, Scale, ShieldAlert, Flame, TrendingDown as LossDay } from 'lucide-react';
 
 function fmtR(v) {
@@ -33,21 +34,112 @@ export default function JournalStats({ stats }) {
   );
 }
 
+const DOW = ['Su','M','T','W','T','F','S'];
+const SENTIMENT = {
+  bullish: ['rgba(8,153,129,0.06)','rgba(8,153,129,0.17)','rgba(8,153,129,0.36)','rgba(8,153,129,0.55)','rgba(8,153,129,0.80)'],
+  bearish: ['rgba(242,54,69,0.06)','rgba(242,54,69,0.17)','rgba(242,54,69,0.36)','rgba(242,54,69,0.55)','rgba(242,54,69,0.80)'],
+  neutral: ['rgba(209,163,63,0.06)','rgba(209,163,63,0.17)','rgba(209,163,63,0.36)','rgba(209,163,63,0.55)','rgba(209,163,63,0.80)'],
+};
+function sentOf(d) { if (!d) return 'neutral'; return d.wins > d.losses ? 'bullish' : d.losses > d.wins ? 'bearish' : 'neutral'; }
+function lvl(count) { if (!count) return -1; return Math.min(4, Math.floor((count - 1) / 3)); }
+
 export function CalendarHeatmap({ byDay }) {
-  // last 35 days grid
-  const days=[];
-  const today=new Date();
-  for(let i=34;i>=0;i--){ const d=new Date(today); d.setDate(today.getDate()-i); const key=d.toISOString().slice(0,10); days.push({date:d, key, data: byDay[key]}); }
+  const [hover, setHover] = useState(null);
+  const { weeks, monthLabels, todayKey } = useMemo(() => {
+    const today = new Date();
+    const todayKey = today.toISOString().slice(0,10);
+    const thisSunday = new Date(today);
+    thisSunday.setDate(today.getDate() - today.getDay());
+    const weeks = []; const monthLabels = []; let prevMonth = -1;
+    for (let w = 4; w >= 0; w--) {
+      const ws = new Date(thisSunday); ws.setDate(thisSunday.getDate() - w * 7);
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(ws); date.setDate(ws.getDate() + d);
+        const key = date.toISOString().slice(0,10);
+        week.push({ date, key, data: byDay?.[key], isFuture: date > today });
+        const m = date.getMonth();
+        if (m !== prevMonth) { monthLabels.push({ col: d, label: date.toLocaleString('en',{month:'short'}) }); prevMonth = m; }
+      }
+      weeks.push(week);
+    }
+    return { weeks, monthLabels, todayKey };
+  }, [byDay]);
+
+  const periodStats = useMemo(() => {
+    let totalPnl=0, totalTrades=0, wins=0, losses=0;
+    Object.values(byDay||{}).forEach(d=>{ if(!d) return; totalPnl+=(d.pnl||0); totalTrades+=(d.count||0); wins+=(d.wins||0); losses+=(d.losses||0); });
+    return { totalPnl, totalTrades, wins, losses, wr: totalTrades ? Math.round(wins/(wins+losses||1)*100) : 0 };
+  }, [byDay]);
+
+  const empty = !byDay || Object.keys(byDay).length === 0;
+
+  if (empty) {
+    return (
+      <div className="rounded-xl p-5" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+        <div className="flex items-center gap-2 mb-3"><Calendar size={14} className="text-accent"/><span className="text-xs font-bold text-main">Activity</span></div>
+        <div className="flex items-center justify-center py-10 text-sm text-muted">No trading data yet</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-xl p-4" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
-      <div className="flex items-center gap-2 mb-3"><Calendar size={14} className="text-accent"/><span className="text-xs font-bold text-main">Activity — last 35 days</span></div>
-      <div className="grid grid-cols-7 gap-1.5">
-        {days.map(d=>{
-          const data=d.data;
-          const bg = !data? 'var(--surface)': data.wins>data.losses? 'var(--bullish)': data.losses>data.wins? 'var(--bearish)': 'rgba(251,191,36,0.6)';
-          const opacity = !data? 1 : Math.min(1, 0.4 + data.count*0.2);
-          return <div key={d.key} title={`${d.key}: ${data? `${data.count} trades, ${data.wins}W/${data.losses}L, ${Number(data.pnl).toFixed(0)}$`:'no trades'}`} className="aspect-square rounded-md flex items-center justify-center text-[8px] font-bold" style={{background: bg, opacity, color: data? '#fff':'var(--muted)', border:'1px solid var(--border)'}}>{d.date.getDate()}</div>;
-        })}
+    <div className="rounded-xl p-4" style={{background:'var(--surface-2)', border:'1px solid var(--border)', boxShadow:'0 0 28px var(--accent-glow), var(--shadow-card)'}}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2"><Calendar size={14} className="text-accent"/><span className="text-xs font-bold text-main">Activity</span></div>
+        <span className="text-[10px] text-muted uppercase tracking-wider">last 5 weeks</span>
+      </div>
+      <div className="max-w-[380px] mx-auto">
+        <div className="flex gap-[3px] mb-1">
+          {DOW.map(d=><div key={d} className="flex-1 h-[18px] flex items-center justify-center text-[9px] font-semibold text-muted">{d}</div>)}
+        </div>
+        <div className="flex gap-[3px] mb-[3px] h-[16px]">
+          {Array.from({length:7},(_,di)=>{ const ml=monthLabels.find(m=>m.col===di); return <div key={di} className="flex-1 h-full flex items-center justify-center text-[9px] font-bold" style={{color:'var(--muted)'}}>{ml?.label||''}</div>; })}
+        </div>
+        {weeks.map((week,wi)=>(
+          <div key={week[0].key} className="flex gap-[3px] mb-[3px]">
+            {week.map((cell,di)=>{
+              const l=cell.isFuture?-1:lvl(cell.data?.count);
+              const sent=cell.isFuture?'neutral':sentOf(cell.data);
+              const isToday=cell.key===todayKey;
+              const colorArr=SENTIMENT[sent];
+              const bg=l<0?'var(--surface)':colorArr[l];
+              const hovered=hover?.key===cell.key;
+              return (
+                <div key={cell.key} className="heatmap-cell relative flex-1" style={{aspectRatio:'1',animationDelay:`${(wi*7+di)*35}ms`,animation:'fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',opacity:0}}
+                     onMouseEnter={()=>setHover({key:cell.key,cell})} onMouseLeave={()=>setHover(null)}>
+                  <div className="w-full h-full rounded-[5px] transition-all duration-150"
+                       style={{background:bg,boxShadow:isToday?'0 0 0 2px var(--accent)':hovered?'0 0 12px var(--accent-glow)':'none',transform:hovered?'scale(1.1)':'scale(1)'}} />
+                  {hover?.key===cell.key && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg pointer-events-none"
+                         style={{background:'rgba(18,21,26,0.97)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',zIndex:50,whiteSpace:'nowrap',opacity:hovered?1:0,transition:'opacity 0.12s ease'}}>
+                      <div className="text-[11px] font-bold text-main mb-1">{cell.date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</div>
+                      <div className="text-[10px] mb-0.5" style={{color:'var(--text-secondary)'}}>{cell.data?.count||0} trade{cell.data?.count!==1?'s':''} · {cell.data?.wins||0}W / {cell.data?.losses||0}L</div>
+                      <div className="text-[12px] font-bold" style={{color:(cell.data?.pnl||0)>=0?'var(--bullish)':'var(--bearish)'}}>
+                        {(cell.data?.pnl||0)>=0?'+':''}{Number(cell.data?.pnl||0).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <span className="text-[9px] text-muted">Less</span>
+          {[0,1,2,3,4].map(i=><div key={i} className="w-3 h-3 rounded-[3px]" style={{background:SENTIMENT.neutral[i],opacity:i===0?0.35:1}} />)}
+          <span className="text-[9px] text-muted">More</span>
+        </div>
+        <div className="flex items-center justify-center gap-3 mt-2.5 pt-2.5" style={{borderTop:'1px solid var(--border)'}}>
+          <span className="text-[10px] text-muted">Period P&L:</span>
+          <span className="text-xs font-bold" style={{color:periodStats.totalPnl>=0?'var(--bullish)':'var(--bearish)'}}>
+            {periodStats.totalPnl>=0?'+':''}{Number(periodStats.totalPnl).toFixed(2)}
+          </span>
+          <span className="text-[10px]" style={{color:'var(--muted)'}}>·</span>
+          <span className="text-[10px]" style={{color:'var(--text-secondary)'}}>{periodStats.wr}% WR</span>
+          <span className="text-[10px]" style={{color:'var(--muted)'}}>·</span>
+          <span className="text-[10px]" style={{color:'var(--text-secondary)'}}>{periodStats.totalTrades} trades</span>
+        </div>
       </div>
     </div>
   );
