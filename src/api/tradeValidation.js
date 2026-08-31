@@ -74,13 +74,17 @@ export function validateSL(entry, stop, isBuy, instrument, symbol) {
   return { valid: true, warning: null, distance: absDist };
 }
 
-export function validateRR(entry, target, stop, isBuy, rating) {
+export function validateRR(entry, target, stop, isBuy, rating, exec) {
   if (!entry || !target || !stop) return { valid: false, warning: null };
+  let effEntry = Number(entry);
+  if (isNaN(effEntry) && exec) effEntry = parseEntry(exec, isBuy);
+  const effTarget = Number(target);
+  const effStop = Number(stop);
   let rr;
   if (isBuy) {
-    rr = (target - entry) / (entry - stop);
+    rr = (effTarget - effEntry) / (effEntry - effStop);
   } else {
-    rr = (entry - target) / (stop - entry);
+    rr = (effStop - effEntry) / (effEntry - effTarget);
   }
   if (!isFinite(rr) || rr <= 0) return { valid: false, warning: `⚠ Invalid R:R`, rr: String(rr) };
   const minRR = RATING_RR_MINIMUMS[rating] || 2;
@@ -108,11 +112,10 @@ export function validateTradeSetup(trade, instrument, symbol, rating) {
     results.warnings.push('No trade execution data');
     return results;
   }
-  const entryRaw = trade.execution.entry || trade.execution.entry_zone?.split('-')[0] || trade.execution.entry_zone?.split('–')[0];
-  const entry = parseFloat(String(entryRaw).replace(/,/g, ''));
+  const isBuy = trade.bias?.toUpperCase() === 'BUY';
+  const entry = parseEntry(trade.execution, isBuy);
   const stop = parseFloat(String(trade.execution.stop).replace(/,/g, ''));
   const target = parseFloat(String(trade.execution.target).replace(/,/g, ''));
-  const isBuy = trade.bias?.toUpperCase() === 'BUY';
   if (isNaN(entry)) {
     results.valid = false;
     results.warnings.push('Invalid entry price');
@@ -133,7 +136,7 @@ export function validateTradeSetup(trade, instrument, symbol, rating) {
     results.warnings.push(slCheck.warning);
     results.valid = false;
   }
-  const rrCheck = validateRR(entry, target, stop, isBuy, rating);
+  const rrCheck = validateRR(entry, target, stop, isBuy, rating, trade.execution);
   if (!rrCheck.valid && rrCheck.warning) {
     results.warnings.push(rrCheck.warning);
     results.valid = false;
@@ -167,13 +170,25 @@ function parsePriceSafe(val) {
   if (val == null) return NaN;
   if (typeof val === 'number') return val;
   const str = String(val).replace(/,/g, '').trim();
-  // handle range like "123.45 – 123.50" take first number
-  const first = str.split(/[–-]/)[0].trim();
-  const num = parseFloat(first);
-  if (!isNaN(num)) return num;
   const nums = str.match(/[\d]+\.?[\d]*/g);
   if (!nums || nums.length === 0) return NaN;
   return parseFloat(nums[0]);
+}
+
+function parseEntry(exec, isBuy) {
+  if (exec.entry != null) {
+    const e = parsePriceSafe(exec.entry);
+    if (!isNaN(e)) return e;
+  }
+  if (exec.entry_zone != null) {
+    const zone = String(exec.entry_zone).replace(/,/g, '').trim();
+    const parts = zone.split(/[–\-]/).map(s => parseFloat(s.trim()));
+    const a = parts[0], b = parts[1];
+    if (!isNaN(a) && !isNaN(b)) return isBuy ? Math.max(a, b) : Math.min(a, b);
+    if (!isNaN(a)) return a;
+    if (!isNaN(b)) return b;
+  }
+  return NaN;
 }
 
 /**
@@ -185,28 +200,31 @@ export function computeAndEnforceRR(trade, rating) {
   if (!trade || !trade.execution) return trade;
   const exec = { ...trade.execution };
   const isBuy = trade.bias?.toUpperCase() === 'BUY';
-  const entry = parsePriceSafe(exec.entry_zone || exec.entry);
+  const entry = parseEntry(exec, isBuy);
   const stop = parsePriceSafe(exec.stop);
   let target = parsePriceSafe(exec.target);
 
-  // If any price is NaN, cannot compute - return as-is
-  if (isNaN(entry) || isNaN(stop)) return trade;
-  if (isNaN(target)) {
-    // no target to validate - just ensure risk_reward exists if possible
-    return trade;
-  }
+  // If any price is NaN, cannot compute - leave RR as parsed from AI (or "—")
+  if (isNaN(entry) || isNaN(stop) || isNaN(target)) return trade;
 
   const stopDist = Math.abs(entry - stop);
   if (stopDist === 0) return trade;
 
-  const targetDist = Math.abs(target - entry);
-  let rr = targetDist / stopDist;
+  let rr;
+  if (isBuy) {
+    rr = (target - entry) / (entry - stop);
+  } else {
+    rr = (stop - entry) / (entry - target);
+  }
+  if (!isFinite(rr) || rr <= 0) return trade;
   const minRR = RATING_RR_MINIMUMS[rating] || RATING_RR_MINIMUMS['B'];
+
+  // Always overwrite with the recomputed value (trust our numbers, not the AI's)
+  exec.risk_reward = `1:${rr.toFixed(2)}`;
+  exec.r_multiple = Number(rr.toFixed(2));
 
   // Already meets requirement
   if (rr >= minRR && rr <= 5) {
-    if (!exec.risk_reward) exec.risk_reward = `1:${rr.toFixed(2)}`;
-    if (!exec.r_multiple) exec.r_multiple = Number(rr.toFixed(2));
     return { ...trade, execution: exec };
   }
 

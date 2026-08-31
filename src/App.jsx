@@ -723,7 +723,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
           </div>
         )}
         {activeView==='analyze' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start max-w-5xl mx-auto w-full">
 
           {/* Left Panel: Inputs & Upload */}
           <div className="flex flex-col gap-5">
@@ -1039,90 +1039,97 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                     label="Key Price Zones"
                     accent="#facc15"
                     sections={(() => {
-                      // Get all demand and supply zones
-                      const allDemandZones = analysis.key_levels?.demand_zones || [];
-                      const allSupplyZones = analysis.key_levels?.supply_zones || [];
-
-                      // Use all available zones - use let so we can reassign in fallback
-                      let demand = allDemandZones[0];
-                      let supply = allSupplyZones[0];
-                      const demand2 = allDemandZones[1];
-                      const supply2 = allSupplyZones[1];
-                      let fvg = analysis.key_levels?.open_fvg?.[0];
-
-                      // Fallback to HTF/MTF data if not in key_levels
-                      const obRange = (ob) => ob?.range_high && ob?.range_low ? `${ob.range_low} – ${ob.range_high}` : ob?.range_high || ob?.range_low || null;
-                      if (!demand?.range) {
-                        const htfRange = obRange(analysis.htf_analysis?.order_block);
-                        if (htfRange && (analysis.htf_analysis?.trend?.direction === "Bullish")) {
-                          demand = { range: htfRange, status: analysis.htf_analysis.order_block.status };
-                        }
-                      }
-                      if (!demand?.range) {
-                        const mtfRange = obRange(analysis.mtf_analysis?.order_block);
-                        if (mtfRange && (analysis.htf_analysis?.trend?.direction === "Bullish" || analysis.overall_trend === "Bullish")) {
-                          demand = { range: mtfRange, status: analysis.mtf_analysis.order_block.status };
-                        }
-                      }
-                      if (!supply?.range) {
-                        const mtfRange = obRange(analysis.mtf_analysis?.order_block);
-                        if (mtfRange && (analysis.mtf_analysis?.trend?.direction === "Bearish" || analysis.htf_analysis?.trend?.direction === "Bearish")) {
-                          supply = { range: mtfRange, status: analysis.mtf_analysis.order_block.status };
-                        }
-                      }
-                      if (!supply?.range) {
-                        const htfRange = obRange(analysis.htf_analysis?.order_block);
-                        if (htfRange && analysis.htf_analysis?.trend?.direction === "Bearish") {
-                          supply = { range: htfRange, status: analysis.htf_analysis.order_block.status };
-                        }
-                      }
-                      // Helper to convert FVG value to display string (handles objects)
-                      const fvgDisplay = (val) => {
-                        if (val == null) return '—';
+                      const zoneRangeDisplay = (val) => {
+                        if (val == null) return null;
                         if (typeof val === 'string') return val;
-                        if (typeof val === 'object') return val.price || val.range || val.level || JSON.stringify(val);
+                        if (typeof val === 'object') {
+                          if (typeof val.range === 'string' && val.range) return val.range;
+                          if (val.price != null) return String(val.price);
+                          if (val.range_low != null || val.range_high != null) {
+                            return [val.range_low, val.range_high].filter((p) => p != null).join(" – ");
+                          }
+                          if (val.low != null || val.high != null) {
+                            return [val.low, val.high].filter((p) => p != null).join(" – ");
+                          }
+                          return null;
+                        }
                         return String(val);
                       };
-                      // FVG fallback - check both htf and mtf
-                      if (!fvg?.range) {
-                        if (analysis.htf_analysis?.fvg?.nearest_above || analysis.htf_analysis?.fvg?.nearest_below) {
+                      const firstValidRange = (entries) => {
+                        if (!Array.isArray(entries)) return null;
+                        for (const entry of entries) {
+                          const range = zoneRangeDisplay(entry);
+                          if (range && !/unknown|unclear|\?|^\s*[—–-]$/i.test(range)) return range;
+                        }
+                        return null;
+                      };
+                      const allDemandZones = analysis.key_levels?.demand_zones || [];
+                      const allSupplyZones = analysis.key_levels?.supply_zones || [];
+                      const demandRange = firstValidRange(allDemandZones);
+                      const supplyRange = firstValidRange(allSupplyZones);
+
+                      let demand = allDemandZones.find((z) => zoneRangeDisplay(z)) || null;
+                      let supply = allSupplyZones.find((z) => zoneRangeDisplay(z)) || null;
+                      const demand2Zone = allDemandZones.find((z) => zoneRangeDisplay(z) && z !== demand) || null;
+                      const supply2Zone = allSupplyZones.find((z) => zoneRangeDisplay(z) && z !== supply) || null;
+                      let fvg = analysis.key_levels?.open_fvg?.find((z) => zoneRangeDisplay(z)) || null;
+
+                      const obRange = (ob) => {
+                        if (!ob) return null;
+                        if (ob.range_high != null && ob.range_low != null) return `${ob.range_low} – ${ob.range_high}`;
+                        return ob.range_high != null ? String(ob.range_high) : ob.range_low != null ? String(ob.range_low) : null;
+                      };
+                      const demandRangeFromOb = () => obRange(analysis.htf_analysis?.order_block) || obRange(analysis.mtf_analysis?.order_block);
+                      const supplyRangeFromOb = () => obRange(analysis.mtf_analysis?.order_block) || obRange(analysis.htf_analysis?.order_block);
+                      if (!demandRange) {
+                        const r = demandRangeFromOb();
+                        if (r) demand = { range: r, status: analysis.htf_analysis?.order_block?.status || analysis.mtf_analysis?.order_block?.status };
+                      }
+                      if (!supplyRange) {
+                        const r = supplyRangeFromOb();
+                        if (r) supply = { range: r, status: analysis.mtf_analysis?.order_block?.status || analysis.htf_analysis?.order_block?.status };
+                      }
+                      const fvgDisplay = (val) => zoneRangeDisplay(val) || "—";
+                      if (!zoneRangeDisplay(fvg)) {
+                        const htfFvg = analysis.htf_analysis?.fvg;
+                        const mtfFvg = analysis.mtf_analysis?.fvg;
+                        const src = (htfFvg && (htfFvg.nearest_above || htfFvg.nearest_below)) ? htfFvg : (mtfFvg && (mtfFvg.nearest_above || mtfFvg.nearest_below)) ? mtfFvg : null;
+                        if (src) {
                           fvg = {
-                            range: `${fvgDisplay(analysis.htf_analysis.fvg.nearest_below)} - ${fvgDisplay(analysis.htf_analysis.fvg.nearest_above)}`,
+                            range: `${fvgDisplay(src.nearest_below)} - ${fvgDisplay(src.nearest_above)}`,
                             direction: "Above/Below",
-                            status: analysis.htf_analysis.fvg.fill_probability || "Unknown"
-                          };
-                        } else if (analysis.mtf_analysis?.fvg?.nearest_above || analysis.mtf_analysis?.fvg?.nearest_below) {
-                          fvg = {
-                            range: `${fvgDisplay(analysis.mtf_analysis.fvg.nearest_below)} - ${fvgDisplay(analysis.mtf_analysis.fvg.nearest_above)}`,
-                            direction: "Above/Below",
-                            status: analysis.mtf_analysis.fvg.fill_probability || "Unknown"
+                            status: src.fill_probability || ""
                           };
                         }
                       }
+                      const demandStatus = demand?.status && !/unknown/i.test(demand.status) ? demand.status : "";
+                      const supplyStatus = supply?.status && !/unknown/i.test(supply.status) ? supply.status : "";
+                      const fvgStatus = fvg?.status && !/unknown/i.test(fvg.status) ? fvg.status : "";
+                      const contentFor = (range, fallback) => (range && !/unknown|unclear|\?|^\s*[—–-]$/i.test(range)) ? range : fallback;
 
                       return [
                         {
                           title: "DEMAND ZONES (Buy Areas - Below Price)",
-                          content: demand?.range || "Not identified",
-                          sub: demand?.status ? `Status: ${demand.status}` : ""
+                          content: contentFor(zoneRangeDisplay(demand), "Not identified"),
+                          sub: demandStatus ? `Status: ${demandStatus}` : ""
                         },
                         {
                           title: "DEMAND ZONE 2",
-                          content: demand2?.range || "—"
+                          content: contentFor(zoneRangeDisplay(demand2Zone), "—")
                         },
                         {
                           title: "SUPPLY ZONES (Sell Areas - Above Price)",
-                          content: supply?.range || "Not identified",
-                          sub: supply?.status ? `Status: ${supply.status}` : ""
+                          content: contentFor(zoneRangeDisplay(supply), "Not identified"),
+                          sub: supplyStatus ? `Status: ${supplyStatus}` : ""
                         },
                         {
                           title: "SUPPLY ZONE 2",
-                          content: supply2?.range || "—"
+                          content: contentFor(zoneRangeDisplay(supply2Zone), "—")
                         },
                         {
                           title: "OPEN FVG",
-                          content: fvg?.range || "None",
-                          sub: fvg?.direction ? `Direction: ${fvg.direction} | Status: ${fvg.status || "—"}` : ""
+                          content: contentFor(zoneRangeDisplay(fvg), "None"),
+                          sub: fvg?.direction ? `Direction: ${fvg.direction}${fvgStatus ? ` | Status: ${fvgStatus}` : ""}` : ""
                         },
                         {
                           title: "LIQUIDITY SWEEPS",
@@ -1473,6 +1480,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
           onUpdateFields={handleUpdateFields}
           onBulkImport={(newTrades)=> setHistory(prev=> [...newTrades, ...prev])}
           userId={session?.user?.id}
+          setHistory={setHistory}
         />
       )}
 
@@ -1589,7 +1597,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
 
       {/* Footer */}
       <footer className="mt-16 py-8 text-center" style={{ borderTop: '1px solid var(--border)' }}>
-        <p className="text-muted text-xs">ChartAI v2.0 · Pro Trading Intelligence · Not Financial Advice · by ianrash</p>
+        <p className="text-muted text-xs">ChartAI v2.0.1 · Pro Trading Intelligence · Not Financial Advice · by ianrash</p>
       </footer>
     </div>
   );

@@ -1,13 +1,13 @@
-import { X, Trash2, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp, Download, Upload, Search, ShieldAlert, Scale } from "lucide-react";
-import { useState, useMemo } from "react";
+import { X, Trash2, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp, Download, Upload, Search, ShieldAlert, Scale, Plus } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import DOMPurify from "dompurify";
 import JournalStats, { CalendarHeatmap, ProfitCurve } from "./JournalStats";
-import { computeStats, exportTradesCSV, parseCSV, bulkImportTrades, computeRMultiple, symbolGroup } from "../services/tradeHistory";
+import { computeStats, exportTradesCSV, parseCSV, bulkImportTrades, computeRMultiple, computeAutoPnl, symbolGroup, loadAccountSettings, saveAccountSettings, saveTradeToHistory } from "../services/tradeHistory";
 
 const EMOTIONS = ['Confident','Neutral','Anxious','FOMO','Revenge','Patient','Fearful','Overconfident','Calm','Frustrated'];
 const RULES = ['FOMO entry','Oversized position','No stop loss','Chased price','Early exit','Ignored daily limit','Held too long','Skipped checklist'];
 
-export default function HistorySidebarPro({ history, onClose, onUpdateStatus, onDelete, onBulkImport, userId, onUpdateFields }) {
+export default function HistorySidebarPro({ history, onClose, onUpdateStatus, onDelete, onBulkImport, userId, onUpdateFields, setHistory }) {
   const [expandedId, setExpandedId] = useState(null);
   const [filter, setFilter] = useState('All');
   const [groupFilter, setGroupFilter] = useState('All');
@@ -15,8 +15,17 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
   const [showStats, setShowStats] = useState(true);
+  const [showNewTrade, setShowNewTrade] = useState(false);
+  const [account, setAccount] = useState(loadAccountSettings);
+  const [newTrade, setNewTrade] = useState({ symbol:'', bias:'BUY', entry:'', stop:'', target:'', status:'Pending' });
 
-  const stats = useMemo(()=> computeStats(history), [history]);
+  const accountBalance = account.balance ?? 10000;
+  const riskPercent = account.riskPercent ?? 1;
+  const riskPerTrade = accountBalance * riskPercent / 100;
+
+  useEffect(()=>{ saveAccountSettings(account); }, [account]);
+
+  const stats = useMemo(()=> computeStats(history, accountBalance, riskPercent), [history, accountBalance, riskPercent]);
 
   const filtered = useMemo(()=>{
     return history.filter(h=>{
@@ -53,6 +62,7 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
     const next = cur.includes(rule)? cur.filter(r=>r!==rule) : [...cur, rule];
     updateField(item, 'brokenRules', next);
   };
+  const saveAccount = ()=>{ saveAccountSettings(account); setShowNewTrade(v=>!v); };
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end animate-fade-in">
@@ -62,6 +72,54 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
           <div><h2 className="text-base font-semibold" style={{ color: 'var(--text-main)' }}>Journal Pro</h2><p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{history.length} trades • unlimited</p></div>
           <button onClick={onClose} className="icon-btn"><X size={18}/></button>
         </div>
+
+        {/* Account balance panel */}
+        <div className="rounded-xl p-3 mb-2" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-muted uppercase tracking-wider">Account</span>
+            <button onClick={()=>setShowNewTrade(v=>!v)} className="btn-ghost !px-2 !py-1 !text-[10px]"><Plus size={12}/> New Trade</button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="flex items-center gap-1.5"><span className="text-[10px] text-muted">Balance</span>
+              <input type="number" value={accountBalance} onChange={e=>setAccount(a=>({...a, balance:Number(e.target.value)||0}))} className="field !py-1 !text-xs !w-24"/></label>
+            <label className="flex items-center gap-1.5"><span className="text-[10px] text-muted">Risk</span>
+              <input type="number" step="0.1" value={riskPercent} onChange={e=>setAccount(a=>({...a, riskPercent:Number(e.target.value)||0}))} className="field !py-1 !text-xs !w-16"/></label>
+            <span className="text-[10px]" style={{color:'var(--muted)'}}>Risk/trade: <b style={{color:'var(--text-main)'}}>${riskPerTrade.toFixed(2)}</b></span>
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <span className="text-[10px]" style={{color:'var(--muted)'}}>Equity: <b style={{color: (accountBalance+computeStats(history,accountBalance,riskPercent).totalPnl)>=0?'var(--bullish)':'var(--bearish)'}}>${(accountBalance+computeStats(history,accountBalance,riskPercent).totalPnl).toFixed(2)}</b></span>
+            <span className="text-[10px]" style={{color:'var(--muted)'}}>Total P&L: <b style={{color: computeStats(history,accountBalance,riskPercent).totalPnl>=0?'var(--bullish)':'var(--bearish)'}}>${computeStats(history,accountBalance,riskPercent).totalPnl.toFixed(2)}</b></span>
+            <span className="text-[10px]" style={{color:'var(--muted)'}}>Total R: <b style={{color:'var(--accent)'}}>{computeStats(history,accountBalance,riskPercent).totalR?.toFixed(2)??'—'}</b></span>
+          </div>
+        </div>
+
+        {/* New Trade form */}
+        {showNewTrade && (
+          <div className="rounded-xl p-3 mb-2 space-y-2" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+            <div className="flex items-center justify-between"><span className="text-[10px] text-muted uppercase tracking-wider">Add Trade</span><button onClick={()=>setShowNewTrade(false)} className="icon-btn !w-5 !h-5"><X size={12}/></button></div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <input className="field !py-1 !text-xs" placeholder="Symbol" value={newTrade.symbol} onChange={e=>setNewTrade(t=>({...t,symbol:e.target.value}))}/>
+              <select className="field !py-1 !text-xs" value={newTrade.bias} onChange={e=>setNewTrade(t=>({...t,bias:e.target.value}))}>
+                <option value="BUY">BUY</option><option value="SELL">SELL</option>
+              </select>
+              <input type="number" className="field !py-1 !text-xs" placeholder="Entry" value={newTrade.entry} onChange={e=>setNewTrade(t=>({...t,entry:e.target.value}))}/>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <input type="number" className="field !py-1 !text-xs" placeholder="Stop" value={newTrade.stop} onChange={e=>setNewTrade(t=>({...t,stop:e.target.value}))}/>
+              <input type="number" className="field !py-1 !text-xs" placeholder="Target" value={newTrade.target} onChange={e=>setNewTrade(t=>({...t,target:e.target.value}))}/>
+              <select className="field !py-1 !text-xs" value={newTrade.status} onChange={e=>setNewTrade(t=>({...t,status:e.target.value}))}>
+                <option value="Pending">Pending</option><option value="Win">Win</option><option value="Loss">Loss</option>
+              </select>
+            </div>
+            <button className="btn-primary !py-1.5 !text-xs w-full" onClick={()=>{
+              const entry = { ...newTrade, id:crypto.randomUUID(), created_at:new Date().toISOString(), date:new Date().toLocaleString(), entry:newTrade.entry||'Market', rr:'—', rating:'B', score:0, emotion:'', lesson:'', followedPlan:null, brokenRules:[], setupType:null, marketCondition:null, thesis:'', whatWentWell:'', whatToImprove:'' };
+              saveTradeToHistory(userId, entry);
+              setHistory(prev=>[entry,...prev]);
+              setNewTrade({ symbol:'', bias:'BUY', entry:'', stop:'', target:'', status:'Pending' });
+              setShowNewTrade(false);
+            }}>Save Trade</button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Stats toggle */}
@@ -109,27 +167,39 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
           ): filtered.map(item=> {
             const r = computeRMultiple(item);
             return (
-            <div key={item.id} className="card-flat group transition-colors" style={{ background: 'var(--surface)' }}>
+            <div key={item.id} className="card-flat group transition-colors" style={{ background: item.status==='Win'? 'rgba(34,197,94,0.04)': item.status==='Loss'? 'rgba(239,68,68,0.04)': 'var(--surface)', borderLeft: item.status==='Win'? '3px solid var(--bullish)': item.status==='Loss'? '3px solid var(--bearish)': '3px solid transparent' }}>
+              {/* Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`icon-tile ${item.bias==='BUY'? 'chip-bullish':'chip-bearish'}`}>{item.bias==='BUY'? <TrendingUp size={16}/>:<TrendingDown size={16}/>}</div>
-                  <div><h4 className="text-sm font-semibold" style={{color:'var(--text-main)'}}>{item.symbol} <span className="badge mono !text-[10px] ml-1" style={{background:'var(--surface)', border:'1px solid var(--border)', color:'var(--muted)'}}>{item.rating}</span></h4><p className="text-[10px]" style={{color:'var(--muted)'}}>{item.date} <span className="capitalize">• {symbolGroup(item.symbol)}</span></p></div>
+                  <div>
+                    <h4 className="text-sm font-semibold" style={{color:'var(--text-main)'}}>{item.symbol} <span className="badge mono !text-[10px] ml-0.5" style={{background:'var(--surface-2)', border:'1px solid var(--border)', color:'var(--muted)'}}>{item.rating}</span></h4>
+                    <p className="text-[10px]" style={{color:'var(--muted)'}}>{item.date} • <span className="capitalize">{symbolGroup(item.symbol)}</span></p>
+                  </div>
                 </div>
-                <button onClick={()=>{ if(confirm('Delete?')) onDelete(item.id); }} className="opacity-0 group-hover:opacity-100 icon-btn !w-7 !h-7 hover:!text-[color:var(--bearish)]"><Trash2 size={14}/></button>
+                <div className="flex items-center gap-1.5">
+                  <span className={`pill !px-2 !py-0.5 !text-[10px] capitalize ${item.status==='Win'?'!text-white':item.status==='Loss'?'!text-white':''}`} style={item.status==='Win'? {background:'var(--bullish)',borderColor:'transparent'}:item.status==='Loss'? {background:'var(--bearish)',borderColor:'transparent'}:{background:'var(--surface-2)'}}>{item.status}</span>
+                  <button onClick={()=>{ if(confirm('Delete?')) onDelete(item.id); }} className="opacity-0 group-hover:opacity-100 icon-btn !w-7 !h-7 hover:!text-[color:var(--bearish)]"><Trash2 size={14}/></button>
+                </div>
               </div>
-              <div className="grid grid-cols-5 gap-2 mb-2">
-                <div className="card-flat text-center !p-2"><p className="label !text-[9px]">Entry</p><p className="value mono truncate">{item.entry}</p></div>
-                <div className="card-flat text-center !p-2"><p className="label !text-[9px]">R:R</p><p className="value mono tone-accent">{item.rr}</p></div>
-                <div className="card-flat text-center !p-2"><p className="label !text-[9px]">R-mult</p><p className="value mono tabular" style={{color: r!=null? (r>=0?'var(--bullish)':'var(--bearish)'):'var(--muted)'}}>{r!=null? `${r>0?'+':''}${r}R`:'—'}</p></div>
-                <div className="card-flat text-center !p-2"><p className="label !text-[9px]">P&L</p><p className="value mono tabular" style={{color:(item.pnl??0)>=0?'var(--bullish)':'var(--bearish)'}}>{item.pnl!=null? `$${Number(item.pnl).toFixed(2)}`:'—'}</p></div>
-                <div className="card-flat text-center !p-2"><p className="label !text-[9px]">Broker</p><p className="text-[10px] font-semibold truncate" style={{color:'var(--muted)'}}>{item.broker||'Manual'}</p></div>
+              {/* Metrics: prices + auto R & P&L */}
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {[['Entry',item.entry],['Stop',item.stop||'—'],['Target',item.target||'—']].map(([l,v])=>(
+                  <div key={l} className="flex items-center gap-1"><span className="text-[9px] text-muted uppercase tracking-wider">{l}</span><span className="value mono text-xs">{v}</span></div>
+                ))}
+                <span className="text-[10px]" style={{color:'var(--border)'}}>•</span>
+                <div className="flex items-center gap-1"><span className="text-[9px] text-muted uppercase tracking-wider">R</span><span className="value mono tabular text-xs" style={{color: r!=null? (r>=0?'var(--bullish)':'var(--bearish)'):'var(--muted)'}}>{r!=null? `${r>0?'+':''}${r}R`:'—'}</span></div>
+                <div className="flex items-center gap-1 ml-auto"><span className="text-[9px] text-muted uppercase tracking-wider">P&L</span><span className="value mono tabular text-xs" style={{color:(item.pnl??computeAutoPnl(item,accountBalance,riskPercent))>=0?'var(--bullish)':'var(--bearish)'}}>{((item.pnl??computeAutoPnl(item,accountBalance,riskPercent))!=null)? `$${Number(item.pnl??computeAutoPnl(item,accountBalance,riskPercent)).toFixed(2)}`:'—'}</span></div>
               </div>
-              <div className="flex gap-1.5 mb-2 items-center">
-                {['Pending','Win','Loss'].map(s=> <button key={s} onClick={()=>onUpdateStatus(item.id,s)} className="pill !px-3 !py-1 !text-[10px]" style={item.status===s? (s==='Win'? {background:'var(--bullish)',color:'#fff',borderColor:'transparent'}: s==='Loss'? {background:'var(--bearish)',color:'#fff',borderColor:'transparent'}:{background:'var(--accent)',color:'#fff',borderColor:'transparent'}):undefined}>{s}</button>)}
-                {item.emotion && <span className="pill !px-2.5 !py-1 !text-[10px] capitalize" style={{background:'var(--surface-2)'}}>{item.emotion}</span>}
+              {/* Bottom: tags + discipline + expand */}
+              <div className="flex gap-1.5 items-center flex-wrap">
+                {item.emotion && <span className="pill !px-2 !py-0.5 !text-[10px] capitalize" style={{background:'var(--surface-2)'}}>{item.emotion}</span>}
+                {item.followedPlan===true && <span className="pill !px-2 !py-0.5 !text-[10px]" style={{background:'rgba(34,197,94,0.15)',color:'#22c55e',borderColor:'transparent'}}>✓ Plan</span>}
+                {item.followedPlan===false && <span className="pill !px-2 !py-0.5 !text-[10px]" style={{background:'rgba(239,68,68,0.15)',color:'#ef4444',borderColor:'transparent'}}>✗ Rule</span>}
+                {(item.setupType||item.marketCondition) && <div className="flex gap-1 ml-auto">{item.setupType && <span className="chip !px-1.5 !py-0.5 !text-[9px] capitalize" style={{background:'var(--surface-2)', borderColor:'var(--accent)'}}>{item.setupType}</span>}{item.marketCondition && <span className="chip !px-1.5 !py-0.5 !text-[9px] capitalize" style={{background:'var(--surface-2)', borderColor:'var(--muted)'}}>{item.marketCondition}</span>}</div>}
                 <button onClick={()=> setExpandedId(expandedId===item.id? null:item.id)} className="icon-btn ml-auto"><ChevronDown size={14} style={{transform: expandedId===item.id?'rotate(180deg)':'none', transition:'transform 0.15s ease'}}/></button>
               </div>
-              {expandedId===item.id && (
+            {expandedId===item.id && (
                 <div className="space-y-3 pt-2 border-t animate-fade-in" style={{borderColor:'var(--border)'}}>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block"><span className="label !normal-case !tracking-normal block mb-1">P&L ($)</span><input type="number" defaultValue={item.pnl??''} onBlur={e=>updateField(item,'pnl', e.target.value===''? null: Number(e.target.value))} placeholder="e.g. 45.2" className="field text-xs"/></label>
@@ -185,9 +255,10 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
                       })}
                     </div>
                   </div>
-                  {item.analysis?.executive_summary && <p className="text-xs italic text-secondary">"{DOMPurify.sanitize(item.analysis.executive_summary)}"</p>}
-                  {item.analysis?.trade_setup && <p className="text-xs text-secondary">Bias {DOMPurify.sanitize(item.analysis.trade_setup.bias)} | {DOMPurify.sanitize(item.analysis.trade_setup.execution?.entry||'')} | R:R {DOMPurify.sanitize(item.analysis.trade_setup.execution?.risk_reward||'—')}</p>}
-                </div>
+                   {item.analysis?.executive_summary && <p className="text-xs italic text-secondary">"{DOMPurify.sanitize(item.analysis.executive_summary)}"</p>}
+                   {item.analysis?.trade_setup && <p className="text-xs text-secondary">Bias {DOMPurify.sanitize(item.analysis.trade_setup.bias)} | {DOMPurify.sanitize(item.analysis.trade_setup.execution?.entry||'')} | R:R {DOMPurify.sanitize(item.analysis.trade_setup.execution?.risk_reward||'—')}</p>}
+                   <button className="btn-primary !py-2 !text-xs w-full mt-2" onClick={()=>{}}>Save Changes</button>
+                 </div>
               )}
             </div>
           );})}

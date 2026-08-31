@@ -28,6 +28,48 @@ export async function loadTradeHistory(userId) {
   return loadLocal().sort((a,b)=> new Date(b.created_at||b.date) - new Date(a.created_at||a.date));
 }
 
+const LS_ACCOUNT = 'chartai_account';
+
+function parsePrice(v) {
+  const n = parseFloat(String(v || '').replace(/,/g, ''));
+  return isFinite(n) ? n : null;
+}
+
+export function loadAccountSettings() {
+  try { return JSON.parse(localStorage.getItem(LS_ACCOUNT) || '{"balance":10000,"riskPercent":1}'); }
+  catch { return { balance: 10000, riskPercent: 1 }; }
+}
+export function saveAccountSettings(settings) {
+  try { localStorage.setItem(LS_ACCOUNT, JSON.stringify(settings)); } catch { /* ignore */ }
+}
+
+// Compute R-multiple from geometry (entry/stop/target) or realized P&L.
+// Signed: positive = win, negative = loss (-1R), null = pending/insufficient data.
+export function computeRMultiple(trade) {
+  if (trade.risk != null && trade.risk !== '' && !isNaN(Number(trade.risk))) return Number(trade.risk);
+  if (trade.pnl != null && !isNaN(Number(trade.pnl))) {
+    const entry = parsePrice(trade.entry), stop = parsePrice(trade.stop);
+    if (isFinite(entry) && isFinite(stop) && entry !== stop) { const r = Number(trade.pnl) / Math.abs(entry - stop); if (isFinite(r)) return Math.round(r * 100) / 100; }
+  }
+  const entry = parsePrice(trade.entry), stop = parsePrice(trade.stop), target = parsePrice(trade.target);
+  if (isFinite(entry) && isFinite(stop) && entry !== stop && isFinite(target)) {
+    const r = Math.abs(target - entry) / Math.abs(entry - stop);
+    if (trade.status === 'Win') return Math.round(r * 100) / 100;
+    if (trade.status === 'Loss') return -1;
+  }
+  return null;
+}
+
+// Auto-compute P&L from balance × risk% × R-multiple.
+export function computeAutoPnl(trade, balance, riskPercent) {
+  const r = computeRMultiple(trade);
+  if (r == null) return null;
+  const riskAmount = Number(balance || 0) * Number(riskPercent || 0) / 100;
+  if (riskAmount <= 0) return null;
+  if (r < 0) return Math.round(-riskAmount * 100) / 100;
+  return Math.round(riskAmount * r * 100) / 100;
+}
+
 export async function saveTradeToHistory(userId, trade) {
   const entry = {
     id: crypto.randomUUID(),
@@ -71,22 +113,6 @@ export async function saveTradeToHistory(userId, trade) {
   arr.unshift(entry);
   saveLocal(arr);
   return entry;
-}
-
-// Auto-compute realized R-multiple: pnl / risk(entry-stop distance).
-// Falls back to manual risk override; null when insufficient data.
-export function computeRMultiple(trade) {
-  if (trade.risk != null && trade.risk !== '' && !isNaN(Number(trade.risk))) return Number(trade.risk);
-  if (trade.pnl == null || isNaN(Number(trade.pnl))) return null;
-  const pnl = Number(trade.pnl);
-  const entry = parseFloat(String(trade.entry || '').replace(/,/g, ''));
-  const stop = parseFloat(String(trade.stop || '').replace(/,/g, ''));
-  if (!isFinite(entry) || !isFinite(stop) || entry === stop) return null;
-  const riskPerUnit = Math.abs(entry - stop);
-  if (riskPerUnit <= 0) return null;
-  const r = pnl / riskPerUnit;
-  if (!isFinite(r)) return null;
-  return Math.round(r * 100) / 100;
 }
 
 // Compute win/loss streaks from resolved trades.
@@ -204,15 +230,22 @@ export function parseCSV(text) {
   });
 }
 
-export function computeStats(trades) {
+export function computeStats(trades, balance, riskPercent) {
   const total = trades.length;
   const wins = trades.filter(t=> t.status==='Win').length;
   const losses = trades.filter(t=> t.status==='Loss').length;
   const pending = trades.filter(t=> t.status==='Pending').length;
   const winRate = total? Math.round((wins/(wins+losses||1))*100):0;
-  // P&L if pnl present else estimate from RR
+  const accBalance = Number(balance) || 0;
+  const riskPct = Number(riskPercent) || 0;
+  const riskPerTrade = accBalance * riskPct / 100;
+  // P&L: use manual pnl when present, else auto-compute from balance/risk/R
   let totalPnl=0, best=0, worst=0;
-  trades.forEach(t=>{ if(t.pnl!=null&&!isNaN(Number(t.pnl))){ totalPnl+=Number(t.pnl); best=Math.max(best,Number(t.pnl)); worst=Math.min(worst,Number(t.pnl)); }});
+  trades.forEach(t=>{
+    let pnl = t.pnl;
+    if ((pnl == null || isNaN(Number(pnl))) && accBalance > 0 && riskPct > 0) pnl = computeAutoPnl(t, accBalance, riskPct);
+    if (pnl != null && !isNaN(Number(pnl))){ totalPnl+=Number(pnl); best=Math.max(best,Number(pnl)); worst=Math.min(worst,Number(pnl)); }
+  });
   // grouping by symbol/bias
   const bySymbol={}; trades.forEach(t=>{ bySymbol[t.symbol]=(bySymbol[t.symbol]||0)+1; });
   const byBias={BUY:0,SELL:0}; trades.forEach(t=>{ if(t.bias==='BUY')byBias.BUY++; if(t.bias==='SELL')byBias.SELL++; });
@@ -255,11 +288,14 @@ export function computeStats(trades) {
   // ---- Best / worst DAY (by net pnl) ----
   let bestDay=null, worstDay=null;
   Object.entries(byDay).forEach(([key,v])=>{ if(v.count===0)return; if(!bestDay||v.pnl>bestDay.pnl) bestDay={key,...v}; if(!worstDay||v.pnl<worstDay.pnl) worstDay={key,...v}; });
+  const resolvedCount = trades.filter(t=> t.status !== 'Pending').length;
   return { total, wins, losses, pending, winRate, totalPnl, best, worst, bySymbol, byBias, byDay,
     totalR, avgR, expectancyR, profitFactor,
     disciplineScore, ruleBreaks, decided,
     weekSeries, monthSeries, bestDay, worstDay,
-    streaks, byCondition, bySetupType, bestSetupType };
+    streaks, byCondition, bySetupType, bestSetupType,
+    accountBalance: accBalance || null, riskPercent: riskPct || null, riskPerTrade,
+    totalRisk: resolvedCount * riskPerTrade, equity: accBalance + totalPnl };
 }
 
 // Watchlist helpers

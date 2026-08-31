@@ -3,48 +3,55 @@ import { Fibonacci } from "lucide-react";
 export default function ConfluenceMap({ htfAnalysis, mtfAnalysis, m1Analysis }) {
   if (!htfAnalysis && !mtfAnalysis && !m1Analysis) return null;
 
+  const parsePrice = (value) => {
+    if (value == null) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+    if (/unknown|unclear|\?|^\s*[—–-]$/i.test(text)) return null;
+    const matches = text.match(/-?\d+(?:\.\d+)?/g);
+    if (!matches || matches.length === 0) return null;
+    const nums = matches.map(Number);
+    return nums.reduce((a, b) => a + b, 0) / nums.length;
+  };
+
+  const pricedZone = (fields) => {
+    const zone = fields || {};
+    const name = zone.name;
+    const raw = zone.price;
+    const parsed = parsePrice(raw);
+    if (!name || parsed == null) return null;
+    return { name, price: parsed, raw: raw ?? parsed, type: zone.type };
+  };
+
   const getZones = (analysis, prefix) => {
     if (!analysis) return [];
     const zones = [];
 
-    // Order Blocks
-    if (analysis.order_block?.present) {
-      zones.push({
-        name: `${prefix} OB`,
-        price: analysis.order_block.range_low,
-        type: "demand",
-        direction: analysis.order_block.trend?.direction?.toLowerCase() || "unknown",
-      });
+    const ob = analysis.order_block;
+    if (ob?.present) {
+      const obZone = pricedZone({ name: `${prefix} OB`, price: ob.range_low ?? ob.range_high, type: "demand" });
+      if (obZone) zones.push({ ...obZone, direction: ob.trend?.direction?.toLowerCase() || "unknown" });
     }
 
-    // Fair Value Gaps
     if (analysis.fvg?.open_fvgs?.length) {
       analysis.fvg.open_fvgs.forEach((fvg, i) => {
-        zones.push({
-          name: `${prefix} FVG ${i + 1}`,
-          price: fvg.nearest_below || fvg.nearest_above,
-          type: "gap",
-        });
+        const fvgZone = pricedZone({ name: `${prefix} FVG ${i + 1}`, price: fvg.nearest_below ?? fvg.nearest_above, type: "gap" });
+        if (fvgZone) zones.push(fvgZone);
       });
     }
 
-    // Liquidity
     if (analysis.liquidity) {
-      if (analysis.liquidity.bsl_location) {
-        zones.push({ name: `${prefix} SSL`, price: analysis.liquidity.ssl_location, type: "supply" });
-      }
-      if (analysis.liquidity.bsl_location) {
-        zones.push({ name: `${prefix} BSL`, price: analysis.liquidity.bsl_location, type: "demand" });
-      }
+      const liquidityZone = (suffix, price, type) => {
+        const z = pricedZone({ name: `${prefix} ${suffix}`, price, type });
+        if (z) zones.push(z);
+      };
+      liquidityZone("SSL", analysis.liquidity.ssl_location, "supply");
+      liquidityZone("BSL", analysis.liquidity.bsl_location, "demand");
     }
 
-    // Inducement
     if (analysis.inducement?.present) {
-      zones.push({
-        name: `${prefix} Inducement`,
-        price: analysis.inducement.location,
-        type: "inducement",
-      });
+      const ind = pricedZone({ name: `${prefix} Inducement`, price: analysis.inducement.location, type: "inducement" });
+      if (ind) zones.push(ind);
     }
 
     return zones;
@@ -58,10 +65,11 @@ export default function ConfluenceMap({ htfAnalysis, mtfAnalysis, m1Analysis }) 
   const converging = [];
   const allZones = [...htfZones, ...mtfZones, ...m1Zones];
 
-  // Group by rounded price
   const priceGroups = {};
   allZones.forEach((z) => {
-    const key = Math.round(z.price);
+    const parsed = parsePrice(z.price);
+    if (parsed == null) return;
+    const key = Math.round(parsed);
     if (!priceGroups[key]) priceGroups[key] = [];
     priceGroups[key].push(z);
   });
@@ -110,19 +118,19 @@ export default function ConfluenceMap({ htfAnalysis, mtfAnalysis, m1Analysis }) 
         <div>
           <p className="text-[9px] font-bold uppercase tracking-wider text-bullish">HTF Zones</p>
           {htfZones.slice(0, 3).map((z) => (
-            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}</div>
+            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}: {z.price}</div>
           ))}
         </div>
         <div>
           <p className="text-[9px] font-bold uppercase tracking-wider text-main">MTF Zones</p>
           {mtfZones.slice(0, 3).map((z) => (
-            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}</div>
+            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}: {z.price}</div>
           ))}
         </div>
         <div>
           <p className="text-[9px] font-bold uppercase tracking-wider text-green-400">M1 Zones</p>
           {m1Zones.slice(0, 3).map((z) => (
-            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}</div>
+            <div key={z.name} className="text-[9px] text-muted mb-1">{z.name}: {z.price}</div>
           ))}
         </div>
       </div>

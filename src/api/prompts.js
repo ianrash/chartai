@@ -33,6 +33,7 @@ NO GENERIC STATEMENTS: Never use phrases like "bullish momentum" or "bears are i
 NO ANCHORING: Ignore any example values in the JSON schema. Those are placeholders only. Always use actual prices read from the chart.
 INDICATORS NOT VISIBLE: If an indicator is not shown on the chart, set the field to "Not visible on chart". Do not fabricate values.
 CROSS-CHART CLAIMS: Any claim referencing two timeframes must cite the price level from both charts explicitly.
+KEY LEVELS: Every entry in support[]/resistance[]/supply_zones[]/demand_zones[] MUST be a concrete numeric price range string like "1234.5 – 1236.0" or a JSON object with low/high. Never use "Unknown", "Unclear", "?", or empty values. If a zone is not visible, omit it from the array entirely — never fabricate a price. demand_zones and supply_zones should each contain at least 2 entries when that many are visible on the chart. Status fields (status/fill_probability) should be null/omitted when unknown, never the literal string "Unknown".
 
 SECTION 3 — CONCEPT DEFINITIONS
 
