@@ -103,9 +103,9 @@ function SetupConditionStats({ bySetupType, byCondition, bestSetupType }) {
 
 const DOW = ['Su','M','T','W','T','F','S'];
 const SENTIMENT = {
-  bullish: ['rgba(8,153,129,0.06)','rgba(8,153,129,0.17)','rgba(8,153,129,0.36)','rgba(8,153,129,0.55)','rgba(8,153,129,0.80)'],
-  bearish: ['rgba(242,54,69,0.06)','rgba(242,54,69,0.17)','rgba(242,54,69,0.36)','rgba(242,54,69,0.55)','rgba(242,54,69,0.80)'],
-  neutral: ['rgba(209,163,63,0.06)','rgba(209,163,63,0.17)','rgba(209,163,63,0.36)','rgba(209,163,63,0.55)','rgba(209,163,63,0.80)'],
+  bullish: ['rgba(8,153,129,0.15)','rgba(8,153,129,0.35)','rgba(8,153,129,0.55)','rgba(8,153,129,0.75)','rgba(8,153,129,1.0)'],
+  bearish: ['rgba(242,54,69,0.15)','rgba(242,54,69,0.35)','rgba(242,54,69,0.55)','rgba(242,54,69,0.75)','rgba(242,54,69,1.0)'],
+  neutral: ['rgba(209,163,63,0.15)','rgba(209,163,63,0.35)','rgba(209,163,63,0.55)','rgba(209,163,63,0.75)','rgba(209,163,63,1.0)'],
 };
 function sentOf(d) { if (!d) return 'neutral'; return d.wins > d.losses ? 'bullish' : d.losses > d.wins ? 'bearish' : 'neutral'; }
 function lvl(count) { if (!count) return -1; return Math.min(4, Math.floor((count - 1) / 3)); }
@@ -175,9 +175,15 @@ export function CalendarHeatmap({ byDay }) {
               return (
                 <div key={cell.key} className="heatmap-cell relative flex-1" style={{aspectRatio:'1',animationDelay:`${(wi*7+di)*35}ms`,animation:'fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',opacity:0}}
                      onMouseEnter={()=>setHover({key:cell.key,cell})} onMouseLeave={()=>setHover(null)}>
-                  <div className="w-full h-full rounded-[5px] transition-all duration-150"
-                       style={{background:bg,boxShadow:isToday?'0 0 0 2px var(--accent)':hovered?'0 0 12px var(--accent-glow)':'none',transform:hovered?'scale(1.1)':'scale(1)'}} />
-                  {hover?.key===cell.key && (
+                   <div className="w-full h-full rounded-[5px] transition-all duration-150"
+                        style={{background:bg,boxShadow:isToday?'0 0 0 2px var(--accent)':hovered?'0 0 12px var(--accent-glow)':'none',transform:hovered?'scale(1.1)':'scale(1)'}} />
+                   {(cell.data?.wins || cell.data?.losses) && !cell.isFuture && (
+                     <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5 pointer-events-none">
+                       {Array.from({length: Math.min(cell.data?.wins||0, 5)}).map((_,i)=> <div key={`w-${i}`} className="w-1 h-1 rounded-full bg-[#089981]" />)}
+                       {Array.from({length: Math.min(cell.data?.losses||0, 5)}).map((_,i)=> <div key={`l-${i}`} className="w-1 h-1 rounded-full bg-[#f23645]" />)}
+                     </div>
+                   )}
+                   {hover?.key===cell.key && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg pointer-events-none"
                          style={{background:'rgba(18,21,26,0.97)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',zIndex:50,whiteSpace:'nowrap',opacity:hovered?1:0,transition:'opacity 0.12s ease'}}>
                       <div className="text-[11px] font-bold text-main mb-1">{cell.date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</div>

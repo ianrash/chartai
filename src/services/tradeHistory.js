@@ -251,7 +251,7 @@ export function computeStats(trades, balance, riskPercent) {
   const byBias={BUY:0,SELL:0}; trades.forEach(t=>{ if(t.bias==='BUY')byBias.BUY++; if(t.bias==='SELL')byBias.SELL++; });
   // calendar map date -> count/pnl
   const byDay={};
-  trades.forEach(t=>{ const d=new Date(t.created_at||t.date); if(isNaN(d))return; const key=d.toISOString().slice(0,10); if(!byDay[key])byDay[key]={count:0,pnl:0,wins:0,losses:0}; byDay[key].count++; if(t.pnl)byDay[key].pnl+=Number(t.pnl); if(t.status==='Win')byDay[key].wins++; if(t.status==='Loss')byDay[key].losses++; });
+  trades.forEach(t=>{ const d=new Date(t.created_at||t.date); if(isNaN(d))return; const key=d.toISOString().slice(0,10); if(!byDay[key])byDay[key]={count:0,pnl:0,wins:0,losses:0}; byDay[key].count++; if(t.pnl!=null)byDay[key].pnl+=Number(t.pnl); if(t.status==='Win')byDay[key].wins++; if(t.status==='Loss')byDay[key].losses++; });
   // ---- R-multiple ----
   const rValues = trades.map(computeRMultiple).filter(r=> r!=null);
   const totalR = rValues.length? rValues.reduce((a,b)=>a+b,0):0;
