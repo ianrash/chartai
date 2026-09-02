@@ -52,7 +52,7 @@ export default function HTFCard({ data }) {
     : (data.liquidity?.untouched_targets ? toDisplayString(data.liquidity.untouched_targets) : "None");
 
   return (
-    <div className="card flex flex-col gap-3">
+    <div className="analysis-context-card card flex flex-col gap-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="card-header !mb-0">

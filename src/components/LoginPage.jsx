@@ -111,7 +111,7 @@ export default function LoginPage({ onBack, onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg)' }}>
+    <div className="auth-page min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
         {onBack && (
           <button onClick={onBack} className="btn-ghost absolute -top-12 left-0">

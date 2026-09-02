@@ -55,6 +55,7 @@ import {
   Link2,
   Settings,
   Star,
+  Target,
   Newspaper,
   ExternalLink,
   User,
@@ -474,7 +475,7 @@ export default function App() {
     if (session?.user) {
       const saved = await saveTradeToHistory(session.user.id, newEntry);
       if (saved) {
-        setHistory(prev => [saved, ...prev].slice(0, 10));
+        setHistory(prev => [saved, ...prev]);
         addToast("Trade saved to history", "success");
       } else {
         addToast("Failed to save trade", "error");
@@ -617,6 +618,15 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
   const trendCfg = analysis
     ? TREND_CONFIG[trendInfo.overall] ?? TREND_CONFIG.Neutral
     : null;
+  const chartsWithTimeframe = charts.filter((chart) => chart.timeframe).length;
+  const chartsReady = charts.length >= 2 && chartsWithTimeframe === charts.length;
+  const activeWorkflowStep = analysis ? 3 : chartsReady ? 2 : charts.length >= 2 ? 1 : 0;
+  const workflowSteps = [
+    { label: "Upload", complete: charts.length >= 2, detail: `${charts.length}/2 charts` },
+    { label: "Timeframes", complete: chartsReady, detail: `${chartsWithTimeframe}/${charts.length || 2} assigned` },
+    { label: "Analyze", complete: Boolean(analysis), detail: analysis ? "Complete" : "Ready next" },
+    { label: "Review", complete: Boolean(analysis), detail: analysis ? "Setup ready" : "Awaiting result" },
+  ];
 
   if (authLoading) {
     return (
@@ -639,7 +649,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
   }
 
   return (
-    <div className="min-h-screen bg-bg font-sans pb-24 md:pb-10 transition-colors duration-300">
+    <div className="app-shell min-h-screen bg-bg font-sans pb-24 md:pb-10 transition-colors duration-300">
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
 
       {/* Header */}
@@ -723,10 +733,32 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
           </div>
         )}
         {activeView==='analyze' && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start max-w-5xl mx-auto w-full">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(340px,0.72fr)_minmax(0,1.28fr)] gap-6 items-start max-w-6xl mx-auto w-full">
 
           {/* Left Panel: Inputs & Upload */}
           <div className="flex flex-col gap-5">
+            <section className="workflow-card" aria-labelledby="workflow-title">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <p className="label mb-1">Analysis workspace</p>
+                  <h1 id="workflow-title" className="text-lg font-bold tracking-tight text-main">Build your trade plan</h1>
+                  <p className="text-xs text-muted mt-1">Start with a higher and lower timeframe chart.</p>
+                </div>
+                <span className="badge chip-accent shrink-0">Step {analysis ? 4 : chartsReady ? 3 : charts.length >= 2 ? 2 : 1} of 4</span>
+              </div>
+              <ol className="workflow-steps" aria-label="Analysis progress">
+                {workflowSteps.map((step, index) => (
+                  <li key={step.label} className={`workflow-step ${step.complete ? "is-complete" : ""} ${!step.complete && index === activeWorkflowStep ? "is-current" : ""}`}>
+                    <span className="workflow-step-number">{step.complete ? <FileCheck size={13} /> : index + 1}</span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-semibold text-main">{step.label}</span>
+                      <span className="block text-[10px] text-muted mt-0.5">{step.detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
             <UploadZone charts={charts} onChartsChange={handleChartsChange} onChartClick={(chart) => setZoomChart(chart)} />
 
             {error && (
@@ -747,7 +779,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
 
             {/* Analyze Button - Hidden after analysis is complete */}
             {!hasAnalyzed && (
-              <div className="glass fixed bottom-0 left-0 right-0 p-4 z-40 md:relative md:bg-transparent md:backdrop-blur-none md:p-0" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="glass mobile-action-bar fixed bottom-0 left-0 right-0 p-4 z-40 md:relative md:bg-transparent md:backdrop-blur-none md:p-0" style={{ borderTop: '1px solid var(--border)' }}>
                 <div className="flex items-center justify-between gap-3 mb-2 px-1">
                   <span className="text-[11px] text-muted">Analyses used today</span>
                   <div className="flex items-center gap-1">
@@ -790,7 +822,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
               </div>
             )}
             {loading && hasAnalyzed && (
-              <div className="glass fixed bottom-0 left-0 right-0 p-4 z-40 md:relative md:bg-transparent md:backdrop-blur-none md:p-0" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="glass mobile-action-bar fixed bottom-0 left-0 right-0 p-4 z-40 md:relative md:bg-transparent md:backdrop-blur-none md:p-0" style={{ borderTop: '1px solid var(--border)' }}>
                 <div className="w-full py-3.5 rounded-[10px] flex items-center justify-center gap-2 text-sm font-semibold" style={{ background: 'var(--accent-glow)', color: 'var(--accent)', border: '1px solid rgba(41,98,255,0.25)' }}>
                   <Cpu size={16} className="animate-spin" />
                   {loadingStage === 1 && "Uploading..."}
@@ -802,7 +834,7 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
           </div>
 
           {/* Right Panel: Analysis Output */}
-          <div className="flex flex-col gap-6" id="analysis-report" ref={analysisRef}>
+          <div className="analysis-report flex flex-col gap-6" id="analysis-report" ref={analysisRef}>
             {loading && (
               <div className="card flex flex-col items-center justify-center py-20 gap-6">
                 {/* Progress stages */}
@@ -852,6 +884,46 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                   </p>
                 </div>
               </div>
+            )}
+
+            {!loading && !analysis && (
+              <section className="analysis-preview card animate-fade-in-up" aria-labelledby="analysis-preview-title">
+                <div className="card-header">
+                  <div className="icon-tile icon-tile-accent"><Target size={16} /></div>
+                  <div>
+                    <p className="label">Your output</p>
+                    <h2 id="analysis-preview-title" className="text-sm font-semibold text-main">A decision-ready setup will appear here</h2>
+                  </div>
+                </div>
+                <div className="analysis-preview-score">
+                  <div>
+                    <p className="label">Setup grade</p>
+                    <p className="text-2xl font-bold mono text-main mt-1">A−</p>
+                  </div>
+                  <div className="analysis-preview-meter" aria-hidden="true"><span /></div>
+                  <span className="badge chip-bullish">Example</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  {[
+                    ["Entry zone", "1.0840–55"],
+                    ["Stop loss", "1.0815"],
+                    ["Target", "1.0920"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="card-flat !p-3 min-w-0">
+                      <p className="label !text-[9px]">{label}</p>
+                      <p className="text-xs font-semibold mono text-main mt-1 truncate">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="analysis-preview-list">
+                  <p><FileCheck size={14} /> Multi-timeframe bias and trend alignment</p>
+                  <p><FileCheck size={14} /> Key levels, liquidity, and confluence checks</p>
+                  <p><FileCheck size={14} /> A structured entry, stop, target, and R:R plan</p>
+                </div>
+                <p className="text-[11px] text-muted border-t pt-3 mt-4" style={{ borderColor: 'var(--border)' }}>
+                  Upload at least two clear charts, then assign each timeframe to unlock analysis.
+                </p>
+              </section>
             )}
 
             {analysis && (
@@ -930,12 +1002,12 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
                   <HTFCard data={analysis.htf_analysis} />
                   <LTFCard data={analysis.mtf_analysis} htfDirection={analysis.htf_analysis?.trend?.direction} killZoneActive={analysis.kill_zone_active} />
 
                   {analysis.convergence?.present && (
-                    <div className="md:col-span-2 p-3.5 rounded-[12px]" style={{ background: 'var(--accent-glow)', border: '1px solid rgba(41,98,255,0.3)' }}>
+                    <div className="2xl:col-span-2 p-3.5 rounded-[12px]" style={{ background: 'var(--accent-glow)', border: '1px solid rgba(41,98,255,0.3)' }}>
                       <div className="flex items-center gap-2">
                         <Zap size={14} style={{ color: 'var(--accent)' }} />
                         <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>Convergence detected</span>
@@ -947,12 +1019,12 @@ Generated: ${analysisTimestamp ? formatTimestamp(analysisTimestamp) : 'N/A'}`;
                     </div>
                   )}
 
-                  <div className="md:col-span-2">
+                  <div className="2xl:col-span-2">
                     <ConfluenceChecklist data={analysis.confluence_checklist} />
                   </div>
 
                   {analysis.confluence_score !== undefined && (
-                    <div className="md:col-span-2">
+                    <div className="2xl:col-span-2">
                       <ConfidenceBar confidence={analysis.probability_rating} score={analysis.confluence_score} />
                     </div>
                   )}

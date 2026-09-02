@@ -6,38 +6,41 @@
 
 @layer base {
   :root {
-    /* Surfaces — flat, professional neutrals */
-    --bg: #0b0d11;
-    --surface: #12151a;
-    --surface-2: #191d24;
-    --surface-3: #242a33;
+    /* Surfaces — deep ink with a jewel-toned premium palette */
+    --bg: #080a16;
+    --surface: #111426;
+    --surface-2: #181c33;
+    --surface-3: #242a46;
 
-    /* Accent — institutional trading blue */
-    --accent: #2962ff;
-    --accent-dim: #1d4fd8;
-    --accent-glow: rgba(41, 98, 255, 0.09);
+    /* Accent — indigo, violet, and cyan */
+    --accent: #8b8cff;
+    --accent-dim: #6869ed;
+    --accent-2: #26d9ff;
+    --accent-glow: rgba(125, 112, 255, 0.18);
+    --brand-gradient: linear-gradient(135deg, #7c6cff 0%, #a855f7 48%, #22d3ee 100%);
+    --brand-gradient-hover: linear-gradient(135deg, #9287ff 0%, #bb67ff 48%, #3bdefd 100%);
 
     /* Semantic — TradingView-style professional colours */
-    --bullish: #089981;
-    --bullish-glow: rgba(8, 153, 129, 0.09);
-    --bearish: #f23645;
-    --bearish-glow: rgba(242, 54, 69, 0.09);
-    --neutral: #d1a33f;
-    --neutral-glow: rgba(209, 163, 63, 0.09);
+    --bullish: #26d69b;
+    --bullish-glow: rgba(38, 214, 155, 0.13);
+    --bearish: #ff5d7d;
+    --bearish-glow: rgba(255, 93, 125, 0.13);
+    --neutral: #ffc15b;
+    --neutral-glow: rgba(255, 193, 91, 0.13);
 
     /* Text */
-    --text-main: #f2f4f7;
-    --text-secondary: #9ba1ad;
-    --muted: #6b7280;
+    --text-main: #f5f5ff;
+    --text-secondary: #adb2cf;
+    --muted: #747b9e;
 
     /* Lines & solid surfaces */
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.16);
-    --glass: #13161b;
+    --border: rgba(181, 190, 255, 0.12);
+    --border-hover: rgba(166, 154, 255, 0.38);
+    --glass: rgba(12, 15, 32, 0.76);
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 16px -12px rgba(0, 0, 0, 0.5);
-    --shadow-pop: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 20px 40px -20px rgba(0, 0, 0, 0.6);
-    --ring: 0 0 0 2px var(--accent-glow);
+    --shadow-card: 0 10px 30px -18px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    --shadow-pop: 0 20px 60px -24px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    --ring: 0 0 0 3px var(--accent-glow);
   }
 
   .light {
@@ -46,9 +49,12 @@
     --surface-2: #eef0f3;
     --surface-3: #e3e6ea;
 
-    --accent: #1658c7;
-    --accent-dim: #1d4fd8;
-    --accent-glow: rgba(22, 88, 199, 0.08);
+    --accent: #635bdb;
+    --accent-dim: #5149c6;
+    --accent-2: #008fb3;
+    --accent-glow: rgba(99, 91, 219, 0.12);
+    --brand-gradient: linear-gradient(135deg, #5b55d6 0%, #9333ea 48%, #0891b2 100%);
+    --brand-gradient-hover: linear-gradient(135deg, #6d67e6 0%, #a855f7 48%, #0ea5c6 100%);
 
     --bullish: #0a8f6e;
     --bullish-glow: rgba(10, 143, 110, 0.08);
@@ -63,7 +69,7 @@
 
     --border: rgba(16, 24, 40, 0.1);
     --border-hover: rgba(16, 24, 40, 0.2);
-    --glass: #ffffff;
+    --glass: rgba(255, 255, 255, 0.8);
 
     --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 6px 16px -12px rgba(16, 24, 40, 0.1);
     --shadow-pop: 0 4px 12px -2px rgba(16, 24, 40, 0.1), 0 20px 40px -20px rgba(16, 24, 40, 0.18);
@@ -79,6 +85,7 @@
 
   body {
     background-color: var(--bg);
+    background-image: radial-gradient(circle at 8% -12%, rgba(124, 108, 255, 0.24), transparent 30%), radial-gradient(circle at 94% 12%, rgba(34, 211, 238, 0.13), transparent 25%);
     color: var(--text-main);
     font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
@@ -122,17 +129,17 @@
     border-radius: 14px;
     padding: 20px;
     border: 1px solid var(--border);
-    background: var(--surface);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 96%, white), var(--surface));
     box-shadow: var(--shadow-card);
     position: relative;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .card-flat {
     border-radius: 14px;
     padding: 16px;
     border: 1px solid var(--border);
-    background: var(--surface-2);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--surface-2) 92%, white), var(--surface-2));
   }
 
   .card-interactive {
@@ -141,6 +148,8 @@
   .card-interactive:hover {
     border-color: var(--border-hover);
     background: var(--surface-2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-pop);
   }
 
   /* Section header row inside cards */
@@ -163,8 +172,8 @@
     flex-shrink: 0;
   }
   .icon-tile-accent {
-    background: var(--accent-glow);
-    color: var(--accent);
+    background: linear-gradient(135deg, rgba(124, 108, 255, 0.28), rgba(34, 211, 238, 0.17));
+    color: var(--accent-2);
   }
 
   /* ── Typography helpers ───────────────────── */
@@ -196,11 +205,11 @@
     font-size: 13px;
     font-weight: 600;
     color: #fff;
-    background: var(--accent);
+    background: var(--brand-gradient);
     border: 1px solid transparent;
     transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   }
-  .btn-primary:hover { background: var(--accent-dim); box-shadow: 0 4px 16px -4px var(--accent-glow); }
+  .btn-primary:hover { background: var(--brand-gradient-hover); box-shadow: 0 10px 24px -8px var(--accent-glow); }
   .btn-primary:active { transform: scale(0.98); }
   .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
 
@@ -309,7 +318,7 @@
   .pill-active,
   .pill.pill-active {
     color: #fff;
-    background: var(--accent);
+    background: var(--brand-gradient);
     border-color: transparent;
   }
 
@@ -347,6 +356,24 @@
   .glass {
     background: var(--glass);
     border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+  }
+
+  .app-shell {
+    background:
+      radial-gradient(circle at 5% 0%, rgba(124, 108, 255, 0.16), transparent 32%),
+      radial-gradient(circle at 96% 14%, rgba(34, 211, 238, 0.1), transparent 28%);
+  }
+  .auth-page {
+    background:
+      radial-gradient(circle at 22% 14%, rgba(124, 108, 255, 0.32), transparent 28%),
+      radial-gradient(circle at 84% 86%, rgba(34, 211, 238, 0.16), transparent 28%),
+      var(--bg);
+  }
+  .auth-page .modal-panel {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 96%, white), var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
   }
 
   .overlay-backdrop {
@@ -418,6 +445,112 @@
 
   .divider { height: 1px; background: var(--border); border: none; }
 
+  /* ── Guided analysis workspace ───────────── */
+  .workflow-card {
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    box-shadow: var(--shadow-card);
+  }
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .workflow-step {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .workflow-step-number {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .workflow-step.is-current .workflow-step-number {
+    color: var(--accent);
+    background: var(--accent-glow);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .workflow-step.is-complete .workflow-step-number {
+    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .analysis-preview { border-left: 2px solid var(--accent); }
+  .analysis-preview-score {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .analysis-preview-meter {
+    flex: 1;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-3);
+  }
+  .analysis-preview-meter span { display: block; width: 76%; height: 100%; border-radius: inherit; background: var(--bullish); }
+  .analysis-preview-list { display: grid; gap: 9px; margin-top: 16px; }
+  .analysis-preview-list p { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; color: var(--text-secondary); }
+  .analysis-preview-list svg { flex: 0 0 auto; color: var(--bullish); }
+
+  /* ── Journal Pro ─────────────────────────── */
+  .journal-drawer { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, #1d2444), var(--surface)) !important; }
+  .journal-header { background: linear-gradient(100deg, rgba(124, 108, 255, 0.16), rgba(34, 211, 238, 0.06) 54%, transparent); }
+  .journal-account {
+    margin: 16px 20px 0;
+    background: linear-gradient(135deg, rgba(56, 45, 116, 0.52), rgba(23, 33, 65, 0.76)) !important;
+    border-color: rgba(139, 140, 255, 0.24) !important;
+  }
+  .journal-toolbar { padding-bottom: 2px; }
+  .journal-filters { padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: rgba(10, 13, 29, 0.28); }
+  .journal-metric { position: relative; overflow: hidden; background: linear-gradient(145deg, rgba(36, 42, 74, 0.92), rgba(21, 25, 48, 0.92)) !important; }
+  .journal-metric::after { content: ''; position: absolute; inset: auto 0 0; height: 2px; background: var(--brand-gradient); opacity: 0.75; }
+  .journal-pulse { background: linear-gradient(100deg, rgba(104, 79, 237, 0.18), rgba(34, 211, 238, 0.08)) !important; }
+  .journal-trade { transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important; }
+  .journal-trade:hover { transform: translateX(-2px); border-color: var(--border-hover) !important; box-shadow: 0 14px 30px -22px rgba(0,0,0,.9); }
+
+  /* ── Decision-first analysis report ──────── */
+  .analysis-report { scroll-margin-top: 96px; }
+  .analysis-context-card { min-width: 0; }
+  .analysis-context-card > :first-child,
+  .trade-setup-card > :first-child { position: relative; z-index: 1; }
+  .analysis-context-card::before {
+    content: '';
+    display: block;
+    height: 3px;
+    margin: -20px -20px 16px;
+    background: var(--brand-gradient);
+    opacity: 0.85;
+  }
+  .trade-setup-card {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+    background: linear-gradient(145deg, rgba(42, 37, 85, 0.96), rgba(17, 22, 45, 0.98));
+    box-shadow: 0 22px 45px -28px rgba(86, 69, 231, 0.75), var(--shadow-card);
+  }
+  .trade-setup-card .card-flat { background: rgba(10, 14, 31, 0.46); }
+  .trade-setup-card .card-flat:has(.label) { border-color: color-mix(in srgb, var(--accent) 18%, var(--border)); }
+
   /* ── Animations & utilities ───────────────── */
   .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
   .animate-fade-in-up { animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -483,4 +616,14 @@
 @keyframes fillBar {
   0% { width: 0%; }
   100% { width: var(--bar-width); }
+}
+
+@media (max-width: 767px) {
+  .mobile-action-bar { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .workflow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn-primary { background-size: 160% 160%; }
+  .btn-primary:hover { background-position: 100% 100%; }
 }

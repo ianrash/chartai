@@ -46,7 +46,7 @@ export default function TradeSetup({ trade, onSave, onCopy, confluenceChecklist,
   const BiasIcon = isBuy ? TrendingUp : isWait ? Clock : TrendingDown;
 
   return (
-    <div className="card flex flex-col gap-2 sm:gap-4 animate-fade-in-up mt-2 sm:mt-4">
+    <div className="trade-setup-card card flex flex-col gap-2 sm:gap-4 animate-fade-in-up mt-2 sm:mt-4">
       {/* Header – compact row */}
       <div className="flex items-center justify-between gap-1 sm:gap-3">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">

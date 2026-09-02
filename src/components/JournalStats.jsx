@@ -9,28 +9,26 @@ function fmtR(v) {
 export default function JournalStats({ stats }) {
   if (!stats) return null;
   const cards = [
-    { label:'Total Trades', value: stats.total, icon: Activity, color:'var(--accent)' },
-    { label:'Win Rate', value: `${stats.winRate}%`, icon: Trophy, color:'var(--bullish)' },
-    { label:'Wins / Losses', value: `${stats.wins} / ${stats.losses}`, icon: stats.wins>=stats.losses? TrendingUp: TrendingDown, color: stats.wins>=stats.losses?'var(--bullish)':'var(--bearish)' },
-    { label:'Pending', value: stats.pending, icon: Clock, color:'var(--neutral)' },
     { label:'Total P&L', value: `${stats.totalPnl>=0?'+':''}$${stats.totalPnl.toFixed(2)}`, icon: DollarSign, color: stats.totalPnl>=0?'var(--bullish)':'var(--bearish)' },
-    { label:'Total R', value: fmtR(stats.totalR), icon: Scale, color:'var(--accent)' },
-    { label:'Avg R', value: fmtR(stats.avgR), icon: Target, color:'var(--accent)' },
+    { label:'Win rate', value: `${stats.winRate}%`, icon: Trophy, color:'var(--bullish)' },
     { label:'Expectancy /R', value: fmtR(stats.expectancyR), icon: TrendingUp, color: (stats.expectancyR??0)>=0?'var(--bullish)':'var(--bearish)' },
     { label:'Profit Factor', value: stats.profitFactor!=null? (isFinite(stats.profitFactor)? Number(stats.profitFactor).toFixed(2): '∞') : '—', icon: Target, color:'var(--bullish)' },
     { label:'Discipline', value: stats.disciplineScore!=null? `${stats.disciplineScore}%` : '—', icon: ShieldAlert, color: (stats.disciplineScore??0)>=70?'var(--bullish)':(stats.disciplineScore??0)>=40?'var(--neutral)':'var(--bearish)' },
-    { label:'Best Day', value: stats.bestDay? `${stats.bestDay.key.slice(5)} +$${Number(stats.bestDay.pnl).toFixed(0)}` : '—', icon: Flame, color:'var(--bullish)' },
-    { label:'Worst Day', value: stats.worstDay? `${stats.worstDay.key.slice(5)} $${Number(stats.worstDay.pnl).toFixed(0)}` : '—', icon: LossDay, color:'var(--bearish)' },
+    { label:'Closed trades', value: `${stats.wins + stats.losses} / ${stats.total}`, icon: Activity, color:'var(--accent)' },
   ];
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {cards.map(c=> (
-          <div key={c.label} className="rounded-xl p-3 flex items-center gap-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+          <div key={c.label} className="journal-metric rounded-xl p-3 flex items-center gap-3" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background:`${c.color}15`, color:c.color}}><c.icon size={16}/></div>
             <div className="min-w-0"><p className="text-[10px] text-muted uppercase tracking-wider">{c.label}</p><p className="text-sm font-bold text-main truncate">{c.value}</p></div>
           </div>
         ))}
+      </div>
+      <div className="journal-pulse rounded-xl p-3 flex items-center gap-3" style={{background:'var(--accent-glow)', border:'1px solid color-mix(in srgb, var(--accent) 28%, transparent)'}}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background:'var(--brand-gradient)', color:'#fff'}}><ShieldAlert size={15}/></div>
+        <div><p className="text-[10px] uppercase tracking-wider font-bold text-main">Journal pulse</p><p className="text-xs text-secondary mt-0.5">{stats.disciplineScore >= 70 ? 'Your process is holding up. Keep risk and execution consistent.' : 'Review broken rules before your next session; process quality needs attention.'}</p></div>
       </div>
       {stats.streaks && <StreaksCard streaks={stats.streaks} />}
       {(stats.bySetupType || stats.byCondition) && <SetupConditionStats bySetupType={stats.bySetupType} byCondition={stats.byCondition} bestSetupType={stats.bestSetupType} />}

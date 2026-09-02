@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useMemo } from "react";
 
 const LOW = { r: 242, g: 54, b: 69 };
 const MED = { r: 209, g: 163, b: 63 };
@@ -18,15 +18,8 @@ function scoreToColor(score) {
 }
 
 export default function ConfidenceBar({ confidence, score }) {
-  const barRef = useRef(null);
-  const percentage = score ?? 0;
+  const percentage = Math.max(0, Math.min(100, Number(score) || 0));
   const color = useMemo(() => scoreToColor(score), [score]);
-
-  useEffect(() => {
-    if (barRef.current) {
-      barRef.current.style.setProperty("--bar-width", `${percentage}%`);
-    }
-  }, [percentage]);
 
   return (
     <div className="card-flat animate-slide-up">
@@ -48,11 +41,11 @@ export default function ConfidenceBar({ confidence, score }) {
       </div>
       <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
         <div
-          ref={barRef}
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{
-            background: color,
-            width: 0,
+            background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 62%, white))`,
+            boxShadow: `0 0 14px color-mix(in srgb, ${color} 55%, transparent)`,
+            width: `${percentage}%`,
           }}
         />
       </div>

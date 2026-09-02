@@ -73,7 +73,7 @@ export default function LTFCard({ data, htfDirection, killZoneActive }) {
   const openFvgs = Array.isArray(data.fvg?.open_fvgs) ? data.fvg.open_fvgs : [];
 
   return (
-    <div className="card flex flex-col gap-3">
+    <div className="analysis-context-card card flex flex-col gap-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="card-header !mb-0">

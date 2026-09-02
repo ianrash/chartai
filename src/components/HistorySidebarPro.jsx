@@ -67,14 +67,14 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
   return (
     <div className="fixed inset-0 z-[60] flex justify-end animate-fade-in">
       <div className="absolute inset-0 overlay-backdrop" onClick={onClose} />
-      <div className="relative w-full max-w-[640px] h-full flex flex-col border-l animate-slide-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)', boxShadow: 'var(--shadow-pop)' }}>
-        <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-          <div><h2 className="text-base font-semibold" style={{ color: 'var(--text-main)' }}>Journal Pro</h2><p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{history.length} trades • unlimited</p></div>
+      <div className="journal-drawer relative w-full max-w-[1080px] h-full flex flex-col border-l animate-slide-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)', boxShadow: 'var(--shadow-pop)' }}>
+        <div className="journal-header p-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+          <div><p className="label mb-1">Performance workspace</p><h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>Journal Pro</h2><p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{history.length} recorded trades · review the process, not only the P&L</p></div>
           <button onClick={onClose} className="icon-btn"><X size={18}/></button>
         </div>
 
         {/* Account balance panel */}
-        <div className="rounded-xl p-3 mb-2" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
+        <div className="journal-account rounded-xl p-4 mb-2" style={{background:'var(--surface-2)', border:'1px solid var(--border)'}}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-muted uppercase tracking-wider">Account</span>
             <button onClick={()=>setShowNewTrade(v=>!v)} className="btn-ghost !px-2 !py-1 !text-[10px]"><Plus size={12}/> New Trade</button>
@@ -121,9 +121,9 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="journal-content flex-1 overflow-y-auto p-5 space-y-5">
           {/* Stats toggle */}
-          <div className="flex items-center justify-between">
+          <div className="journal-toolbar flex items-center justify-between">
             <button onClick={()=>setShowStats(v=>!v)} className="btn-ghost">{showStats? <ChevronUp size={14}/>:<ChevronDown size={14}/>} Stats & Calendar</button>
             <div className="flex gap-2">
               <label className="btn-secondary !px-3 !py-1.5 !text-xs cursor-pointer"><Upload size={12}/>Import<input type="file" accept=".csv" hidden onChange={handleImport}/></label>
@@ -145,7 +145,7 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
           </>}
 
           {/* Filters */}
-          <div className="flex flex-col gap-2">
+          <div className="journal-filters flex flex-col gap-2">
             <div className="flex gap-2 flex-wrap items-center">
               <div className="relative flex-1 min-w-[160px]"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--muted)'}}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search symbol, bias, notes, emotion..." className="field !py-2 text-xs !pl-8"/></div>
             </div>
@@ -167,7 +167,7 @@ export default function HistorySidebarPro({ history, onClose, onUpdateStatus, on
           ): filtered.map(item=> {
             const r = computeRMultiple(item);
             return (
-            <div key={item.id} className="card-flat group transition-colors" style={{ background: item.status==='Win'? 'rgba(34,197,94,0.04)': item.status==='Loss'? 'rgba(239,68,68,0.04)': 'var(--surface)', borderLeft: item.status==='Win'? '3px solid var(--bullish)': item.status==='Loss'? '3px solid var(--bearish)': '3px solid transparent' }}>
+            <div key={item.id} className="journal-trade card-flat group transition-colors" style={{ background: item.status==='Win'? 'rgba(38,214,155,0.07)': item.status==='Loss'? 'rgba(255,93,125,0.07)': 'var(--surface)', borderLeft: item.status==='Win'? '3px solid var(--bullish)': item.status==='Loss'? '3px solid var(--bearish)': '3px solid transparent' }}>
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">

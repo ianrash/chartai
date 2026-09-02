@@ -7,7 +7,12 @@ const BIAS_CONFIG = {
   Neutral: { chipClass: "chip-neutral", Icon: Minus },
 };
 
+// These diagnostics are deliberately excluded from the primary trade report.
+// They repeated information already surfaced in the setup, confluence, and key-level views.
+const SECONDARY_DIAGNOSTICS = new Set(["Active Patterns", "Key Price Zones", "Indicators"]);
+
 export default function AnalysisCard({ icon: Icon, label, value, sub, accent, bias, sections }) {
+  if (SECONDARY_DIAGNOSTICS.has(label)) return null;
   const biasCfg = bias ? BIAS_CONFIG[bias] : null;
   const accentColor = accent || "var(--accent)";
   const accentGlow = accent ? `${accent}22` : "var(--accent-glow)";

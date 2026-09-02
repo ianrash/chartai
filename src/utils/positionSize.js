@@ -135,7 +135,7 @@ export function calculatePositionSize(accountBalance, riskPercent, stopLossPips,
   const riskAmount = accountBalance * (riskPercent / 100);
 
   // Get pip value for this instrument
-  const pipValue = getPipValue(instrument, instrument);
+   const pipValue = getPipValue(instrument, symbol);
 
   // Calculate lot size
   // Lot Size = Risk Amount / (Stop Loss Pips × Pip Value)

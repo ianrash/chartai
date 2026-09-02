@@ -384,7 +384,7 @@ export default function LandingPage({ onGetStarted }) {
               </p>
               <ul className="lp-price-features">
                 {[
-                  '5 analyses per day',
+                  '3 analyses per day',
                   'Basic confluence grading',
                   'Single timeframe upload',
                   'Community support',

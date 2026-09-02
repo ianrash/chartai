@@ -8,12 +8,13 @@ const ICT_CONFIG = {
 };
 
 function formatPrice(price, decimals = 2) {
+  if (price == null || isNaN(Number(price))) return "—";
   return Number(price).toFixed(decimals);
 }
 
 export default function KeyLevelsSummary({ computedICT }) {
   if (!computedICT) return null;
-  const { swing_high, swing_low, range, entry_zone, entry_zone_low, entry_zone_high, ote_zone, ote_zone_low, ote_zone_high, discount, premium } = computedICT;
+  const { swing_high, swing_low, range, entry_zone, entry_zone_low, entry_zone_high, ote_zone, ote_zone_low, ote_zone_high, discount={}, premium={} } = computedICT;
   return (
     <div className="card edge-card flex flex-col gap-4 animate-fade-in-up" style={{ borderLeftColor: "var(--accent)" }}>
       <div className="flex items-start gap-3">

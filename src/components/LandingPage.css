@@ -8,7 +8,10 @@
 .lp-page {
   position: relative;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 78% 8%, rgba(168, 85, 247, 0.18), transparent 26%),
+    radial-gradient(circle at 12% 30%, rgba(34, 211, 238, 0.1), transparent 22%),
+    var(--bg);
   color: var(--text-main);
   overflow-x: clip;
 }
@@ -37,6 +40,19 @@
   pointer-events: none;
   overflow: hidden;
 }
+
+.lp-bg::before,
+.lp-bg::after {
+  content: '';
+  position: absolute;
+  width: min(46vw, 650px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.22;
+}
+.lp-bg::before { top: -22%; right: -14%; background: #694dff; }
+.lp-bg::after { top: 34%; left: -24%; background: #0898ca; opacity: 0.12; }
 
 .lp-dot-grid {
   position: absolute;
@@ -138,6 +154,7 @@
   right: 0;
   z-index: 50;
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 30px -24px rgba(0, 0, 0, 0.9);
 }
 
 .lp-nav-inner {
@@ -190,7 +207,8 @@
   margin-bottom: 28px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface-2);
+  background: linear-gradient(135deg, rgba(124, 108, 255, 0.16), rgba(34, 211, 238, 0.08));
+  box-shadow: 0 8px 24px -18px var(--accent);
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -218,6 +236,10 @@
 .lp-hero-title em {
   font-style: normal;
   color: var(--accent);
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .lp-hero-sub {
@@ -291,7 +313,7 @@
 
 .lp-chart-line {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--accent-2);
   stroke-width: 1.5;
   stroke-dasharray: 4000;
   stroke-dashoffset: 4000;
@@ -300,7 +322,7 @@
 }
 
 .lp-chart-area {
-  fill: rgba(41, 98, 255, 0.05);
+  fill: rgba(124, 108, 255, 0.12);
 }
 
 @keyframes lpDrawLine {
@@ -414,7 +436,7 @@
 .lp-card {
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: linear-gradient(145deg, rgba(30, 35, 63, 0.92), rgba(15, 18, 35, 0.92));
   box-shadow: var(--shadow-card);
   padding: 22px;
   transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
@@ -422,7 +444,9 @@
 
 .lp-card:hover {
   border-color: var(--border-hover);
-  background: var(--surface-2);
+  background: linear-gradient(145deg, rgba(42, 47, 80, 0.98), rgba(19, 23, 44, 0.98));
+  transform: translateY(-3px);
+  box-shadow: 0 18px 35px -23px rgba(3, 5, 20, 0.95), 0 0 0 1px rgba(139, 140, 255, 0.08) inset;
 }
 
 /* ─── STEP CARDS ─── */
@@ -535,7 +559,7 @@
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: linear-gradient(135deg, rgba(124, 108, 255, 0.22), rgba(34, 211, 238, 0.12));
   box-shadow: var(--shadow-pop);
   transition: border-color 0.3s ease;
 }
@@ -565,8 +589,9 @@
 }
 
 .lp-price-card.is-active {
-  border-color: rgba(41, 98, 255, 0.4);
-  background: var(--surface-2);
+  border-color: rgba(139, 140, 255, 0.6);
+  background: linear-gradient(145deg, rgba(68, 53, 137, 0.72), rgba(24, 31, 64, 0.96));
+  box-shadow: 0 20px 45px -27px rgba(113, 88, 255, 0.9), 0 0 0 1px rgba(34, 211, 238, 0.1) inset;
 }
 
 .lp-price-head {
@@ -741,8 +766,9 @@
   text-align: left;
   padding: 48px;
   border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid rgba(139, 140, 255, 0.34);
+  background: linear-gradient(135deg, rgba(65, 48, 140, 0.78), rgba(21, 38, 71, 0.9) 58%, rgba(16, 26, 50, 0.96));
+  box-shadow: 0 25px 60px -34px rgba(116, 91, 255, 0.8);
 }
 
 .lp-cta-title {
@@ -781,6 +807,13 @@
   font-size: 12px;
   color: var(--muted);
 }
+
+/* Keep the landing page coherent if a visitor previously selected light mode. */
+.light .lp-page { background: radial-gradient(circle at 78% 8%, rgba(168, 85, 247, 0.1), transparent 26%), var(--bg); }
+.light .lp-card { background: linear-gradient(145deg, #ffffff, #f0f2ff); }
+.light .lp-card:hover { background: linear-gradient(145deg, #ffffff, #e8ebff); }
+.light .lp-price-card.is-active { background: linear-gradient(145deg, #eeebff, #e4f8ff); }
+.light .lp-cta-box { background: linear-gradient(135deg, #ede9fe, #e0f7ff); }
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
